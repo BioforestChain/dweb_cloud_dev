@@ -1,0 +1,64 @@
+{
+  "name": "@dweb-cloud/safenv",
+  "version": "0.1.0",
+  "description": "A universal configuration, environment, and variable management library for Node.js projects",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "bin": {
+    "safenv": "./bin/safenv.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown --format esm,cjs --dts",
+    "dev": "tsdown --format esm,cjs --dts --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest",
+    "prepublishOnly": "pnpm run build"
+  },
+  "keywords": [
+    "config",
+    "environment",
+    "variables",
+    "typescript",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@iarna/toml": "^2.2.5",
+    "chokidar": "^3.5.3",
+    "commander": "^12.0.0",
+    "js-yaml": "^4.1.0",
+    "json5": "^2.2.3",
+    "jsonc-parser": "^3.2.0",
+    "unconfig": "^7.3.2"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.0",
+    "tsdown": "^0.13.2",
+    "typescript": "^5.9.0"
+  },
+  "peerDependencies": {
+    "zod": "^3.22.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": true
+    }
+  }
+}

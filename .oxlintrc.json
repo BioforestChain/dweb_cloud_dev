@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "eslint/no-unused-vars": "warn",
+    "eslint/no-console": "off",
+    "typescript/no-explicit-any": "off",
+    "typescript/no-unused-vars": "warn"
+  },
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "globals": {
+    "globalThis": "readonly",
+    "fetch": "readonly"
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/build/**",
+    "**/node_modules/**",
+    "**/public/**",
+    "**/static/**",
+    "**/*.d.ts"
+  ]
+}

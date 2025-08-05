@@ -1,0 +1,38 @@
+{
+  "name": "@dweb-cloud/dev",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "prepare": "husky",
+    "pre-commit": "lint-staged"
+  },
+  "keywords": [
+    "dweb-cloud"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.14.0",
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.4",
+    "oxlint": "^1.9.0",
+    "prettier": "^3.6.2",
+    "vitest": "^1.6.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md,yaml,yml}": [
+      "prettier --write"
+    ],
+    "packages/*/src/**/*.{ts,tsx}": [
+      "oxlint --fix"
+    ]
+  }
+}
