@@ -71,7 +71,9 @@ export class SafenvCore {
 
     const pluginMap: Record<string, new (options?: any) => SafenvPlugin> = {
       genFilePlugin: GenFilePlugin,
+      genFile: GenFilePlugin,
       genTsPlugin: GenTsPlugin,
+      genTs: GenTsPlugin,
     }
 
     const PluginClass = pluginMap[pluginConfig.name]

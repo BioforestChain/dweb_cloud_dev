@@ -12,6 +12,10 @@ export class GenFilePlugin extends BasePlugin {
 
   async apply(context: SafenvContext): Promise<void> {
     const outputDir = this.options.outputDir || context.outputDir
+    console.log(
+      `GenFilePlugin: Generating files in ${outputDir} with formats:`,
+      this.options.formats
+    )
 
     // Generate config files
     for (const format of this.options.formats) {
@@ -38,6 +42,7 @@ export class GenFilePlugin extends BasePlugin {
       }
 
       this.writeFile(filePath, content)
+      console.log(`GenFilePlugin: Generated ${filePath}`)
     }
 
     // Web-ui functionality has been moved to a separate command
@@ -70,9 +75,20 @@ export class GenFilePlugin extends BasePlugin {
 
   private stringifyValue(value: any): string {
     if (typeof value === 'string') {
-      return value.includes(' ') || value.includes('"')
-        ? `"${value.replace(/"/g, '\\"')}"`
-        : value
+      // Check if the string needs quoting (contains spaces, quotes, or special chars)
+      const needsQuoting =
+        value.includes(' ') ||
+        value.includes('"') ||
+        value.includes('\n') ||
+        value.includes('\t') ||
+        value.includes('&') ||
+        value.includes('|')
+
+      if (needsQuoting) {
+        // Escape existing quotes and wrap in quotes
+        return `"${value.replace(/"/g, '\\"')}"`
+      }
+      return value
     }
     if (Array.isArray(value)) {
       return value.join(',')

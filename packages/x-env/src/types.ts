@@ -76,8 +76,9 @@ export type SafenvResolvedValue<T extends SafenvPrimitiveType> =
   SafenvDefaultValue<T>
 
 // Custom validation function with proper typing
+// Validators receive the raw input value (string from env vars) and should validate/transform it
 export type SafenvValidator<T extends SafenvPrimitiveType> = (
-  value: SafenvResolvedValue<T>
+  value: string | number | boolean | Record<string, unknown> | unknown[]
 ) => boolean | string
 
 // Enhanced variable definition with type safety
