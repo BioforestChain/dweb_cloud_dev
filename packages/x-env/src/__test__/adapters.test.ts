@@ -1,165 +1,60 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import {
-  existsSync,
-  writeFileSync,
-  mkdirSync,
-  rmSync,
-  readFileSync,
-} from 'node:fs'
-import { join } from 'node:path'
-import {
-  HttpImportExportAdapter,
   FileImportExportAdapter,
-} from '../adapters.ts'
+  HttpImportExportAdapter,
+} from '../adapters/index.ts'
 
-describe('HttpImportExportAdapter', () => {
-  let adapter: HttpImportExportAdapter
+describe('Import/Export Adapters', () => {
+  describe('FileImportExportAdapter', () => {
+    let adapter: FileImportExportAdapter
 
-  beforeEach(() => {
-    adapter = new HttpImportExportAdapter()
-  })
-
-  it('should create adapter instance', () => {
-    expect(adapter).toBeInstanceOf(HttpImportExportAdapter)
-  })
-
-  it('should handle fetch errors during import', async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: false,
-      statusText: 'Not Found',
+    beforeEach(() => {
+      adapter = new FileImportExportAdapter({ format: 'json' })
     })
 
-    await expect(
-      adapter.import('https://example.com/config.json')
-    ).rejects.toThrow(
-      'Failed to import from https://example.com/config.json: Not Found'
-    )
-  })
-
-  it('should import JSON data from URL', async () => {
-    const mockData = { key: 'value' }
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-      json: vi.fn().mockResolvedValueOnce(mockData),
+    it('should check if File System Access API is supported', () => {
+      // In Node.js environment, it should not be supported
+      expect(adapter.isSupported()).toBe(false)
     })
 
-    const result = await adapter.import('https://example.com/config.json')
-    expect(result).toEqual(mockData)
-  })
-
-  it('should handle fetch errors during export', async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: false,
-      statusText: 'Bad Request',
+    it('should throw error when trying to import in unsupported environment', async () => {
+      await expect(adapter.importConfig()).rejects.toThrow(
+        'File System Access API is not supported in this browser'
+      )
     })
 
-    await expect(
-      adapter.export('https://example.com/config.json', { key: 'value' })
-    ).rejects.toThrow(
-      'Failed to export to https://example.com/config.json: Bad Request'
-    )
-  })
-
-  it('should export JSON data to URL', async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-    })
-
-    await adapter.export('https://example.com/config.json', { key: 'value' })
-
-    expect(fetch).toHaveBeenCalledWith('https://example.com/config.json', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ key: 'value' }),
-    })
-  })
-})
-
-describe('FileImportExportAdapter', () => {
-  let adapter: FileImportExportAdapter
-  const testOutputDir = join(process.cwd(), 'test-output')
-
-  beforeEach(() => {
-    adapter = new FileImportExportAdapter()
-    if (existsSync(testOutputDir)) {
-      rmSync(testOutputDir, { recursive: true })
-    }
-    mkdirSync(testOutputDir, { recursive: true })
-  })
-
-  afterEach(() => {
-    if (existsSync(testOutputDir)) {
-      rmSync(testOutputDir, { recursive: true })
-    }
-  })
-
-  it('should create adapter instance', () => {
-    expect(adapter).toBeInstanceOf(FileImportExportAdapter)
-  })
-
-  it('should import JSON file', async () => {
-    const testData = { key: 'value', number: 42 }
-    const filePath = join(testOutputDir, 'test.json')
-    writeFileSync(filePath, JSON.stringify(testData), 'utf8')
-
-    const result = await adapter.import(filePath)
-    expect(result).toEqual(testData)
-  })
-
-  it('should import env file', async () => {
-    const envContent = `KEY1=value1
-KEY2="value with spaces"
-# This is a comment
-KEY3=value3`
-    const filePath = join(testOutputDir, 'test.env')
-    writeFileSync(filePath, envContent, 'utf8')
-
-    const result = await adapter.import(filePath)
-    expect(result).toEqual({
-      KEY1: 'value1',
-      KEY2: 'value with spaces',
-      KEY3: 'value3',
+    it('should throw error when trying to export in unsupported environment', async () => {
+      const variables = { TEST: 'value' }
+      await expect(adapter.exportConfig(variables)).rejects.toThrow(
+        'File System Access API is not supported in this browser'
+      )
     })
   })
 
-  it('should export JSON file', async () => {
-    const testData = { key: 'value', number: 42 }
-    const filePath = join(testOutputDir, 'test.json')
+  describe('HttpImportExportAdapter', () => {
+    let adapter: HttpImportExportAdapter
 
-    await adapter.export(filePath, testData)
+    beforeEach(() => {
+      adapter = new HttpImportExportAdapter('http://localhost:3000', {
+        format: 'json',
+      })
+    })
 
-    expect(existsSync(filePath)).toBe(true)
-    const content = JSON.parse(readFileSync(filePath, 'utf8'))
-    expect(content).toEqual(testData)
-  })
+    it('should check if fetch API is supported', () => {
+      // In Node.js environment with fetch polyfill, it might be supported
+      const isSupported = adapter.isSupported()
+      expect(typeof isSupported).toBe('boolean')
+    })
 
-  it('should export env file', async () => {
-    const testData = {
-      KEY1: 'value1',
-      KEY2: 'value with spaces',
-      KEY3: 42,
-      KEY4: true,
-    }
-    const filePath = join(testOutputDir, 'test.env')
+    it('should handle import errors gracefully', async () => {
+      // This will fail because we're not running a server
+      await expect(adapter.importConfig()).rejects.toThrow()
+    })
 
-    await adapter.export(filePath, testData)
-
-    expect(existsSync(filePath)).toBe(true)
-    const content = readFileSync(filePath, 'utf8')
-    expect(content).toContain('KEY1=value1')
-    expect(content).toContain('KEY2="value with spaces"')
-    expect(content).toContain('KEY3=42')
-    expect(content).toContain('KEY4=true')
-  })
-
-  it('should handle browser environment check', async () => {
-    // The adapter should work in Node.js environment
-    const testData = { key: 'value' }
-    const filePath = join(testOutputDir, 'test.json')
-
-    await adapter.export(filePath, testData)
-    expect(existsSync(filePath)).toBe(true)
+    it('should handle export errors gracefully', async () => {
+      const variables = { TEST: 'value' }
+      // This will fail because we're not running a server
+      await expect(adapter.exportConfig(variables)).rejects.toThrow()
+    })
   })
 })

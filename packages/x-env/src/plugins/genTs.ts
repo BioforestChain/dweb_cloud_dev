@@ -10,225 +10,390 @@ export class GenTsPlugin extends BasePlugin {
   }
 
   async apply(context: SafenvContext): Promise<void> {
-    const content = this.generateTsContent(context)
+    const content = this.generateStandardSchemaContent(context)
     this.writeFile(this.options.outputPath, content)
   }
 
-  private generateTsContent(context: SafenvContext): string {
+  private generateStandardSchemaContent(context: SafenvContext): string {
     const parts: string[] = []
 
-    // Add imports
-    if (this.options.validatorStyle === 'zod') {
-      parts.push(this.generateZodImports(context.config.variables))
-    }
+    // Add Standard Schema interface import
+    parts.push(this.generateStandardSchemaImport())
 
-    // Handle different export types
-    if (this.options.exportType === 'named') {
-      parts.push(this.generateNamedExports(context))
-    } else if (this.options.exportType === 'default') {
-      parts.push(this.generateDefaultExport(context))
-    } else {
-      // Original object-based approach
-      parts.push(this.generateValidator(context.config.variables))
+    // Generate the schema type definition
+    parts.push(this.generateSchemaTypeDefinition(context))
 
-      if (this.options.exportMode) {
-        parts.push(this.generateExport(context))
-      }
+    // Generate the main validation function
+    parts.push(this.generateValidationFunction(context))
+
+    // Generate export based on export mode
+    if (this.options.exportMode) {
+      parts.push(this.generateExport(context))
     }
 
     return parts.join('\n\n')
   }
 
-  private generateZodImports(
-    variables: Record<string, SafenvVariable>
-  ): string {
-    const usedTypes = new Set<string>()
+  private generateStandardSchemaImport(): string {
+    return `/** Standard Schema interface for TypeScript schema validation libraries */
+export interface StandardSchemaV1<Input = unknown, Output = Input> {
+  readonly '~standard': StandardSchemaV1.Props<Input, Output>;
+}
 
-    Object.values(variables).forEach(variable => {
-      switch (variable.type) {
-        case 'string':
-          usedTypes.add('string')
-          break
-        case 'number':
-          usedTypes.add('number')
-          break
-        case 'boolean':
-          usedTypes.add('boolean')
-          break
-        case 'array':
-          usedTypes.add('array')
-          usedTypes.add('string')
-          break
-        case 'object':
-          usedTypes.add('record')
-          usedTypes.add('any')
-          break
-      }
-    })
-
-    return `import { z } from 'zod'`
+export declare namespace StandardSchemaV1 {
+  export interface Props<Input = unknown, Output = Input> {
+    readonly version: 1;
+    readonly vendor: string;
+    readonly validate: (value: unknown) => Result<Output> | Promise<Result<Output>>;
+    readonly types?: Types<Input, Output> | undefined;
   }
 
-  private generateValidator(variables: Record<string, SafenvVariable>): string {
-    const validatorName = this.options.validatorName || 'zSafenv'
+  export type Result<Output> = SuccessResult<Output> | FailureResult;
 
-    if (this.options.validatorStyle === 'zod') {
-      return this.generateZodValidator(validatorName, variables)
-    } else {
-      return this.generatePureValidator(validatorName, variables)
-    }
+  export interface SuccessResult<Output> {
+    readonly value: Output;
+    readonly issues?: undefined;
   }
 
-  private generateZodValidator(
-    validatorName: string,
-    variables: Record<string, SafenvVariable>
-  ): string {
-    const fields: string[] = []
-
-    Object.entries(variables).forEach(([key, variable]) => {
-      let fieldDef = this.getZodType(variable)
-
-      if (variable.default !== undefined) {
-        fieldDef += `.default(${JSON.stringify(variable.default)})`
-      }
-
-      if (!variable.required) {
-        fieldDef += '.optional()'
-      }
-
-      fields.push(`  ${key}: ${fieldDef}`)
-    })
-
-    const exportPrefix = this.options.exportValidator !== false ? 'export ' : ''
-    return `${exportPrefix}const ${validatorName} = z.object({\n${fields.join(',\n')}\n})`
+  export interface FailureResult {
+    readonly issues: ReadonlyArray<Issue>;
   }
 
-  private generatePureValidator(
-    validatorName: string,
-    variables: Record<string, SafenvVariable>
-  ): string {
-    const parsers: string[] = []
-    const validators: string[] = []
+  export interface Issue {
+    readonly message: string;
+    readonly path?: ReadonlyArray<PropertyKey | PathSegment> | undefined;
+  }
 
-    Object.entries(variables).forEach(([key, variable]) => {
-      const parser = this.getPureParser(variable.type)
-      parsers.push(`  ${key}: ${parser}`)
-    })
+  export interface PathSegment {
+    readonly key: PropertyKey;
+  }
 
-    validators.push(`const parsers = {\n${parsers.join(',\n')}\n}`)
+  export interface Types<Input = unknown, Output = Input> {
+    readonly input: Input;
+    readonly output: Output;
+  }
 
-    const parseLogic = Object.entries(variables)
+  export type InferInput<Schema extends StandardSchemaV1> = NonNullable<
+    Schema['~standard']['types']
+  >['input'];
+
+  export type InferOutput<Schema extends StandardSchemaV1> = NonNullable<
+    Schema['~standard']['types']
+  >['output'];
+}`
+  }
+
+  private generateSchemaTypeDefinition(context: SafenvContext): string {
+    const configName = context.config.name
+    const pascalCaseName = this.toPascalCase(configName)
+
+    // Generate TypeScript interface for the expected shape
+    const interfaceFields = Object.entries(context.config.variables)
       .map(([key, variable]) => {
-        let logic = `const ${key}Raw = env.${key}`
-
-        if (variable.default !== undefined) {
-          logic += ` ?? ${JSON.stringify(variable.default)}`
-        }
-
-        if (variable.required) {
-          logic += `\n  if (${key}Raw === undefined) throw new Error('Required variable ${key} is not set')`
-        }
-
-        logic += `\n  const ${key} = parsers.${key}(${key}Raw)`
-
-        return logic
+        const tsType = this.getTypeScriptType(variable)
+        const optional = !variable.required ? '?' : ''
+        const comment = variable.description
+          ? `  /** ${variable.description} */\n`
+          : ''
+        return `${comment}  ${key}${optional}: ${tsType}`
       })
-      .join('\n  ')
+      .join('\n')
 
-    const returnObj = Object.keys(variables)
-      .map(key => `    ${key}`)
-      .join(',\n')
+    return `/** Configuration interface for ${configName} */
+export interface ${pascalCaseName}Config {
+${interfaceFields}
+}
 
-    const exportPrefix = this.options.exportValidator !== false ? 'export ' : ''
+/** Standard Schema for ${configName} configuration */
+export interface ${pascalCaseName}Schema extends StandardSchemaV1<${pascalCaseName}Config> {
+  readonly name: '${configName}';
+}`
+  }
 
-    return `${parsers.join('\n')}
+  private generateValidationFunction(context: SafenvContext): string {
+    const configName = context.config.name
+    const pascalCaseName = this.toPascalCase(configName)
+    const functionName =
+      this.options.validatorName || `create${pascalCaseName}Schema`
 
-${exportPrefix}const ${validatorName} = {
-  parse: (env: Record<string, any>) => {
-    ${parseLogic}
-    
-    return {
-${returnObj}
+    const validationLogic = this.generateValidationLogic(
+      context.config.variables
+    )
+
+    return `/** Creates a Standard Schema validator for ${configName} configuration */
+export function ${functionName}(): ${pascalCaseName}Schema {
+  return {
+    name: '${configName}',
+    '~standard': {
+      version: 1,
+      vendor: 'safenv',
+      validate(value: unknown): StandardSchemaV1.Result<${pascalCaseName}Config> {
+        ${validationLogic}
+      },
+      types: {} as StandardSchemaV1.Types<${pascalCaseName}Config, ${pascalCaseName}Config>
     }
   }
 }`
   }
 
-  private getZodType(variable: SafenvVariable): string {
+  private generateValidationLogic(
+    variables: Record<string, SafenvVariable>
+  ): string {
+    const validationSteps: string[] = []
+
+    validationSteps.push('const issues: StandardSchemaV1.Issue[] = []')
+    validationSteps.push('const result: Partial<any> = {}')
+    validationSteps.push('')
+    validationSteps.push('// Type check: ensure input is an object')
+    validationSteps.push(
+      'if (typeof value !== "object" || value === null || Array.isArray(value)) {'
+    )
+    validationSteps.push(
+      '  return { issues: [{ message: "Expected an object" }] }'
+    )
+    validationSteps.push('}')
+    validationSteps.push('')
+    validationSteps.push('const input = value as Record<string, unknown>')
+    validationSteps.push('')
+
+    Object.entries(variables).forEach(([key, variable]) => {
+      validationSteps.push(`// Validate ${key}`)
+      validationSteps.push(`{`)
+      validationSteps.push(`  const fieldValue = input.${key}`)
+
+      if (variable.required) {
+        validationSteps.push(`  if (fieldValue === undefined) {`)
+        validationSteps.push(
+          `    issues.push({ message: "Required field '${key}' is missing", path: ['${key}'] })`
+        )
+        validationSteps.push(`  } else {`)
+        validationSteps.push(
+          `    ${this.generateFieldValidation(key, variable)}`
+        )
+        validationSteps.push(`  }`)
+      } else {
+        validationSteps.push(`  if (fieldValue !== undefined) {`)
+        validationSteps.push(
+          `    ${this.generateFieldValidation(key, variable)}`
+        )
+        validationSteps.push(
+          `  }${variable.default !== undefined ? ` else {\n    result.${key} = ${JSON.stringify(variable.default)}\n  }` : ''}`
+        )
+      }
+
+      validationSteps.push(`}`)
+      validationSteps.push('')
+    })
+
+    validationSteps.push('if (issues.length > 0) {')
+    validationSteps.push('  return { issues }')
+    validationSteps.push('}')
+    validationSteps.push('')
+    validationSteps.push('return { value: result as any }')
+
+    return validationSteps.join('\n        ')
+  }
+
+  private generateFieldValidation(
+    key: string,
+    variable: SafenvVariable
+  ): string {
+    const validationSteps: string[] = []
+
     switch (variable.type) {
       case 'string':
-        return 'z.string()'
+        validationSteps.push(`if (typeof fieldValue !== 'string') {`)
+        validationSteps.push(
+          `  issues.push({ message: "Field '${key}' must be a string", path: ['${key}'] })`
+        )
+        validationSteps.push(`} else {`)
+        if (variable.validate) {
+          validationSteps.push(`  // Custom validation would go here`)
+        }
+        validationSteps.push(`  result.${key} = fieldValue`)
+        validationSteps.push(`}`)
+        break
+
       case 'number':
-        return 'z.number()'
+        validationSteps.push(
+          `const numValue = typeof fieldValue === 'string' ? Number(fieldValue) : fieldValue`
+        )
+        validationSteps.push(
+          `if (typeof numValue !== 'number' || isNaN(numValue)) {`
+        )
+        validationSteps.push(
+          `  issues.push({ message: "Field '${key}' must be a number", path: ['${key}'] })`
+        )
+        validationSteps.push(`} else {`)
+        validationSteps.push(`  result.${key} = numValue`)
+        validationSteps.push(`}`)
+        break
+
       case 'boolean':
-        return 'z.boolean()'
+        validationSteps.push(`let boolValue: boolean`)
+        validationSteps.push(`if (typeof fieldValue === 'boolean') {`)
+        validationSteps.push(`  boolValue = fieldValue`)
+        validationSteps.push(`} else if (typeof fieldValue === 'string') {`)
+        validationSteps.push(
+          `  boolValue = fieldValue.toLowerCase() === 'true' || fieldValue === '1'`
+        )
+        validationSteps.push(`} else {`)
+        validationSteps.push(
+          `  issues.push({ message: "Field '${key}' must be a boolean", path: ['${key}'] })`
+        )
+        validationSteps.push(`  return { issues }`)
+        validationSteps.push(`}`)
+        validationSteps.push(`result.${key} = boolValue`)
+        break
+
       case 'array':
-        return 'z.array(z.string())'
+        validationSteps.push(`let arrayValue: string[]`)
+        validationSteps.push(`if (Array.isArray(fieldValue)) {`)
+        validationSteps.push(`  arrayValue = fieldValue.map(String)`)
+        validationSteps.push(`} else if (typeof fieldValue === 'string') {`)
+        validationSteps.push(
+          `  arrayValue = fieldValue.split(',').map(s => s.trim())`
+        )
+        validationSteps.push(`} else {`)
+        validationSteps.push(
+          `  issues.push({ message: "Field '${key}' must be an array or comma-separated string", path: ['${key}'] })`
+        )
+        validationSteps.push(`  return { issues }`)
+        validationSteps.push(`}`)
+        validationSteps.push(`result.${key} = arrayValue`)
+        break
+
       case 'object':
-        return 'z.record(z.any())'
+        validationSteps.push(`let objValue: any`)
+        validationSteps.push(
+          `if (typeof fieldValue === 'object' && fieldValue !== null && !Array.isArray(fieldValue)) {`
+        )
+        validationSteps.push(`  objValue = fieldValue`)
+        validationSteps.push(`} else if (typeof fieldValue === 'string') {`)
+        validationSteps.push(`  try {`)
+        validationSteps.push(`    objValue = JSON.parse(fieldValue)`)
+        validationSteps.push(`  } catch {`)
+        validationSteps.push(
+          `    issues.push({ message: "Field '${key}' must be valid JSON", path: ['${key}'] })`
+        )
+        validationSteps.push(`    return { issues }`)
+        validationSteps.push(`  }`)
+        validationSteps.push(`} else {`)
+        validationSteps.push(
+          `  issues.push({ message: "Field '${key}' must be an object", path: ['${key}'] })`
+        )
+        validationSteps.push(`  return { issues }`)
+        validationSteps.push(`}`)
+        validationSteps.push(`result.${key} = objValue`)
+        break
+
       default:
-        return 'z.string()'
+        validationSteps.push(`result.${key} = String(fieldValue)`)
+    }
+
+    return validationSteps.join('\n      ')
+  }
+
+  private getTypeScriptType(variable: SafenvVariable): string {
+    switch (variable.type) {
+      case 'string':
+        return 'string'
+      case 'number':
+        return 'number'
+      case 'boolean':
+        return 'boolean'
+      case 'array':
+        return 'string[]'
+      case 'object':
+        return 'Record<string, any>'
+      default:
+        return 'string'
     }
   }
 
-  private getPureParser(type: string): string {
-    switch (type) {
-      case 'string':
-        return '(v: any) => String(v)'
-      case 'number':
-        return '(v: any) => Number(v)'
-      case 'boolean':
-        return '(v: any) => String(v).toLowerCase() === "true"'
-      case 'array':
-        return '(v: any) => String(v).split(",").map(s => s.trim())'
-      case 'object':
-        return '(v: any) => JSON.parse(String(v))'
-      default:
-        return '(v: any) => String(v)'
-    }
+  private toPascalCase(str: string): string {
+    return str
+      .split(/[-_\s]+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join('')
   }
 
   private generateExport(context: SafenvContext): string {
-    const exportName = this.options.exportName || 'safenv'
-    const validatorName = this.options.validatorName || 'zSafenv'
+    const exportName = this.options.exportName || 'config'
+    const configName = context.config.name
+    const pascalCaseName = this.toPascalCase(configName)
+    const schemaFunctionName =
+      this.options.validatorName || `create${pascalCaseName}Schema`
 
     switch (this.options.exportMode) {
       case 'process.env':
-        return `export const ${exportName} = ${validatorName}.parse(process.env)`
+        return this.generateProcessEnvExport(exportName, schemaFunctionName)
 
       case 'process.env-static':
-        return this.generateStaticExport(context, exportName, validatorName)
+        return this.generateStaticExport(
+          context,
+          exportName,
+          schemaFunctionName
+        )
 
       case 'env-file':
-        return this.generateEnvFileExport(context, exportName, validatorName)
+        return this.generateEnvFileExport(
+          context,
+          exportName,
+          schemaFunctionName
+        )
 
       case 'json-file':
       case 'yaml-file':
       case 'toml-file':
-        return this.generateFileExport(context, exportName, validatorName)
+        return this.generateFileExport(context, exportName, schemaFunctionName)
 
       default:
-        return `export const ${exportName} = ${validatorName}.parse(process.env)`
+        return this.generateProcessEnvExport(exportName, schemaFunctionName)
     }
+  }
+
+  private generateProcessEnvExport(
+    exportName: string,
+    schemaFunctionName: string
+  ): string {
+    return `/** Validated configuration from process.env */
+export const ${exportName} = (() => {
+  const schema = ${schemaFunctionName}()
+  const result = schema['~standard'].validate(process.env)
+  
+  if (result.issues) {
+    const errorMessage = result.issues.map((issue: StandardSchemaV1.Issue) => 
+      issue.path ? \`\${issue.path.join('.')}: \${issue.message}\` : issue.message
+    ).join('\\n')
+    throw new Error(\`Configuration validation failed:\\n\${errorMessage}\`)
+  }
+  
+  return result.value
+})()`
   }
 
   private generateStaticExport(
     context: SafenvContext,
     exportName: string,
-    validatorName: string
+    schemaFunctionName: string
   ): string {
     const staticExports = Object.keys(context.config.variables).map(key => {
       const constName = `${exportName.toUpperCase()}_${key}`
-      return `export const ${constName} = /* @__PURE__ */ ${validatorName}.shape.${key}.parse(process.env.${key})`
+      return `/** @__PURE__ */ export const ${constName} = (() => {
+  const schema = ${schemaFunctionName}()
+  const result = schema['~standard'].validate({ ${key}: process.env.${key} })
+  return result.issues ? undefined : result.value?.${key}
+})()`
     })
 
-    return staticExports.join('\n')
+    return staticExports.join('\n\n')
   }
 
   private generateEnvFileExport(
     context: SafenvContext,
     exportName: string,
-    validatorName: string
+    schemaFunctionName: string
   ): string {
     const deps = this.options.customDeps || []
     const injectCode = this.options.customInjectCode || []
@@ -248,13 +413,26 @@ if (existsSync(envFile)) {
   process.loadEnvFile(envFile)
 }
 
-export const ${exportName} = ${validatorName}.parse(process.env)`
+/** Validated configuration from .env file */
+export const ${exportName} = (() => {
+  const schema = ${schemaFunctionName}()
+  const result = schema['~standard'].validate(process.env)
+  
+  if (result.issues) {
+    const errorMessage = result.issues.map((issue: StandardSchemaV1.Issue) => 
+      issue.path ? \`\${issue.path.join('.')}: \${issue.message}\` : issue.message
+    ).join('\\n')
+    throw new Error(\`Configuration validation failed:\\n\${errorMessage}\`)
+  }
+  
+  return result.value
+})()`
   }
 
   private generateFileExport(
     context: SafenvContext,
     exportName: string,
-    validatorName: string
+    schemaFunctionName: string
   ): string {
     const mode = this.options.exportMode!
     const extension = mode.split('-')[0]
@@ -277,7 +455,20 @@ if (existsSync(configFile)) {
   config = ${this.getParseFunction(extension)}(content)
 }
 
-export const ${exportName} = ${validatorName}.parse(config)`
+/** Validated configuration from ${extension.toUpperCase()} file */
+export const ${exportName} = (() => {
+  const schema = ${schemaFunctionName}()
+  const result = schema['~standard'].validate(config)
+  
+  if (result.issues) {
+    const errorMessage = result.issues.map((issue: StandardSchemaV1.Issue) => 
+      issue.path ? \`\${issue.path.join('.')}: \${issue.message}\` : issue.message
+    ).join('\\n')
+    throw new Error(\`Configuration validation failed:\\n\${errorMessage}\`)
+  }
+  
+  return result.value
+})()`
   }
 
   private getDefaultDeps(extension: string): string[] {
@@ -316,53 +507,6 @@ export const ${exportName} = ${validatorName}.parse(config)`
         return 'TOML.parse'
       default:
         return 'JSON.parse'
-    }
-  }
-
-  private generateNamedExports(context: SafenvContext): string {
-    const exports: string[] = []
-
-    Object.entries(context.config.variables).forEach(([key, variable]) => {
-      if (this.options.validatorStyle === 'zod') {
-        const zodType = this.getZodType(variable)
-        let fieldDef = zodType
-
-        if (variable.default !== undefined) {
-          fieldDef += `.default(${JSON.stringify(variable.default)})`
-        }
-
-        if (!variable.required) {
-          fieldDef += '.optional()'
-        }
-
-        exports.push(
-          `export const ${key} = ${fieldDef}.parse(process.env.${key})`
-        )
-      } else {
-        const value =
-          context.resolvedVariables[key] !== undefined
-            ? JSON.stringify(context.resolvedVariables[key])
-            : 'process.env.' + key
-        exports.push(`export const ${key} = ${value}`)
-      }
-    })
-
-    return exports.join('\n')
-  }
-
-  private generateDefaultExport(context: SafenvContext): string {
-    if (this.options.validatorStyle === 'none') {
-      const fields = Object.entries(context.resolvedVariables)
-        .map(([key, value]) => `  ${key}: ${JSON.stringify(value)}`)
-        .join(',\n')
-
-      return `export default {\n${fields}\n}`
-    } else {
-      // Generate validator and use it for default export
-      const validator = this.generateValidator(context.config.variables)
-      const validatorName = this.options.validatorName || 'zSafenv'
-
-      return `${validator}\n\nexport default ${validatorName}.parse(process.env)`
     }
   }
 }

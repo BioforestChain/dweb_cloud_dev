@@ -12,7 +12,7 @@
     }
   },
   "bin": {
-    "safenv": "./bin/safenv.js"
+    "safenv": "./dist/cli.js"
   },
   "files": [
     "dist",
@@ -50,8 +50,11 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.11.0",
+    "arktype": "^2.1.20",
     "tsdown": "^0.13.2",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "valibot": "^1.1.0",
+    "zod": "^4.0.15"
   },
   "peerDependencies": {
     "zod": "^3.22.0"

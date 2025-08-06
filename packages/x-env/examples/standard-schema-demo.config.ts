@@ -1,18 +1,15 @@
-import { GenFilePlugin, GenTsPlugin } from '@dweb-cloud/safenv'
-import type { SafenvConfig } from '@dweb-cloud/safenv'
+import type { SafenvConfig } from '../src/types.ts'
+import { GenTsPlugin } from '../src/plugins/genTs.ts'
 
 const config: SafenvConfig = {
-  name: 'my_project',
-  description: 'Example safenv configuration',
+  name: 'standard-schema-demo',
+  description: 'Demo configuration using Standard Schema',
   variables: {
-    NODE_ENV: {
+    APP_NAME: {
       type: 'string',
-      description: 'Node environment',
-      default: 'development',
-      required: true,
-      validate: value =>
-        ['development', 'production', 'test'].includes(value) ||
-        'Must be development, production, or test',
+      description: 'Application name',
+      default: 'My App',
+      required: false,
     },
     PORT: {
       type: 'number',
@@ -37,15 +34,18 @@ const config: SafenvConfig = {
       default: false,
       required: false,
     },
+    API_CONFIG: {
+      type: 'object',
+      description: 'API configuration object',
+      default: { timeout: 5000 },
+      required: false,
+    },
   },
   plugins: [
-    new GenFilePlugin({
-      name: 'my_project',
-      formats: ['env', 'json'],
-    }),
     new GenTsPlugin({
-      outputPath: './src/config/safenv.ts',
-      validatorStyle: 'zod',
+      outputPath: './examples/generated-standard-schema.ts',
+      validatorName: 'createStandardSchemaDemoSchema',
+      validatorStyle: 'pure',
       exportMode: 'process.env',
       exportName: 'config',
     }),

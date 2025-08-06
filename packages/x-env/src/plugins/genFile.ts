@@ -1,12 +1,10 @@
 import { resolve } from 'node:path'
-import { createServer } from 'node:http'
 import { BasePlugin } from './base.ts'
 import type { GenFilePluginOptions } from './types.ts'
 import type { SafenvContext } from '../types.ts'
 
 export class GenFilePlugin extends BasePlugin {
   name = 'genFilePlugin'
-  private server?: any
 
   constructor(private options: GenFilePluginOptions) {
     super()
@@ -42,10 +40,7 @@ export class GenFilePlugin extends BasePlugin {
       this.writeFile(filePath, content)
     }
 
-    // Start web-ui if enabled and in serve mode
-    if (this.options.webUi?.enabled && context.mode === 'serve') {
-      await this.startWebUi(context)
-    }
+    // Web-ui functionality has been moved to a separate command
 
     // Generate HTML tools if enabled
     if (this.options.htmlTools?.enabled) {
@@ -86,194 +81,6 @@ export class GenFilePlugin extends BasePlugin {
       return JSON.stringify(value)
     }
     return String(value)
-  }
-
-  private async startWebUi(context: SafenvContext): Promise<void> {
-    const port = this.options.webUi?.port || 3000
-    const host = this.options.webUi?.host || 'localhost'
-
-    this.server = createServer(async (req, res) => {
-      res.setHeader('Access-Control-Allow-Origin', '*')
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-
-      if (req.method === 'OPTIONS') {
-        res.writeHead(200)
-        res.end()
-        return
-      }
-
-      const url = new URL(req.url!, `http://${host}:${port}`)
-
-      if (url.pathname === '/api/config') {
-        if (req.method === 'GET') {
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(
-            JSON.stringify({
-              config: context.config,
-              resolvedVariables: context.resolvedVariables,
-            })
-          )
-        } else if (req.method === 'POST') {
-          let body = ''
-          req.on('data', chunk => {
-            body += chunk
-          })
-          req.on('end', async () => {
-            try {
-              const { variables } = JSON.parse(body)
-              // Update config files with new variables
-              for (const format of this.options.formats) {
-                const fileName = `${this.options.name}.safenv.${format}`
-                const filePath = resolve(context.outputDir, fileName)
-                let content: string
-
-                switch (format) {
-                  case 'env':
-                    content = this.generateEnvFile(variables)
-                    break
-                  case 'json':
-                    content = this.generateJsonFile(variables)
-                    break
-                  case 'yaml':
-                    content = this.generateYamlFile(variables)
-                    break
-                  case 'toml':
-                    content = this.generateTomlFile(variables)
-                    break
-                }
-
-                this.writeFile(filePath, content)
-              }
-
-              res.writeHead(200, { 'Content-Type': 'application/json' })
-              res.end(JSON.stringify({ success: true }))
-            } catch (error) {
-              res.writeHead(400, { 'Content-Type': 'application/json' })
-              res.end(
-                JSON.stringify({
-                  error: error instanceof Error ? error.message : String(error),
-                })
-              )
-            }
-          })
-        }
-      } else if (url.pathname === '/') {
-        res.writeHead(200, { 'Content-Type': 'text/html' })
-        res.end(this.generateWebUiHtml(context))
-      } else {
-        res.writeHead(404)
-        res.end('Not Found')
-      }
-    })
-
-    this.server.listen(port, host, () => {
-      console.log(`Safenv Web UI running at http://${host}:${port}`)
-    })
-  }
-
-  private generateWebUiHtml(context: SafenvContext): string {
-    return `<!DOCTYPE html>
-<html>
-<head>
-    <title>Safenv Configuration</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .variable { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
-        input[type="text"], textarea { width: 100%; padding: 8px; margin: 4px 0; }
-        button { padding: 8px 16px; margin: 4px; }
-        .description { color: #666; font-size: 0.9em; }
-    </style>
-</head>
-<body>
-    <h1>Safenv Configuration: ${context.config.name}</h1>
-    <div id="variables"></div>
-    <button onclick="saveConfig()">Save Configuration</button>
-    <button onclick="importConfig()">Import</button>
-    <button onclick="exportConfig()">Export</button>
-    
-    <script>
-        const config = ${JSON.stringify(context.config)};
-        const resolvedVariables = ${JSON.stringify(context.resolvedVariables)};
-        
-        function renderVariables() {
-            const container = document.getElementById('variables');
-            container.innerHTML = '';
-            
-            Object.entries(config.variables).forEach(([key, variable]) => {
-                const div = document.createElement('div');
-                div.className = 'variable';
-                
-                const value = resolvedVariables[key] || variable.default || '';
-                
-                div.innerHTML = \`
-                    <label><strong>\${key}</strong> (\${variable.type})\${variable.required ? ' *' : ''}</label>
-                    \${variable.description ? \`<div class="description">\${variable.description}</div>\` : ''}
-                    <input type="text" id="\${key}" value="\${value}" />
-                \`;
-                
-                container.appendChild(div);
-            });
-        }
-        
-        async function saveConfig() {
-            const variables = {};
-            Object.keys(config.variables).forEach(key => {
-                variables[key] = document.getElementById(key).value;
-            });
-            
-            try {
-                const response = await fetch('/api/config', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ variables })
-                });
-                
-                if (response.ok) {
-                    alert('Configuration saved!');
-                } else {
-                    alert('Failed to save configuration');
-                }
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
-        }
-        
-        function importConfig() {
-            // Use file input for importing
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json,.yaml,.yml,.env,.toml';
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const text = await file.text();
-                    // Parse and update form based on file content
-                    // Implementation would depend on file format
-                }
-            };
-            input.click();
-        }
-        
-        function exportConfig() {
-            const variables = {};
-            Object.keys(config.variables).forEach(key => {
-                variables[key] = document.getElementById(key).value;
-            });
-            
-            const blob = new Blob([JSON.stringify(variables, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = \`\${config.name}.safenv.json\`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-        
-        renderVariables();
-    </script>
-</body>
-</html>`
   }
 
   private async generateHtmlTools(context: SafenvContext): Promise<void> {
@@ -474,9 +281,6 @@ export class GenFilePlugin extends BasePlugin {
   }
 
   async cleanup(): Promise<void> {
-    if (this.server) {
-      this.server.close()
-      this.server = undefined
-    }
+    // Cleanup logic if needed
   }
 }

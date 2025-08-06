@@ -7,10 +7,12 @@ import type {
   SafenvPlugin,
   SafenvPluginConfig,
 } from './types.ts'
+import { DependencyResolver } from './dependency-resolver.ts'
 
 export class SafenvCore {
   private config: SafenvConfig | null = null
   protected options: SafenvOptions
+  private dependencyResolver: DependencyResolver
 
   constructor(options: SafenvOptions = {}) {
     this.options = {
@@ -20,19 +22,30 @@ export class SafenvCore {
       watch: true,
       ...options,
     }
+    this.dependencyResolver = new DependencyResolver()
   }
 
   async loadConfig(): Promise<SafenvConfig> {
+    let files: string[]
+
+    if (this.options.configFile) {
+      // If a specific config file is provided, use it directly
+      files = [this.options.configFile]
+    } else {
+      // Otherwise, search for default config files
+      files = [
+        'safenv.config.ts',
+        'safenv.config.js',
+        'safenv.config.json',
+        'safenv.config.yaml',
+        'safenv.config.yml',
+      ]
+    }
+
     const { config } = await loadConfig<SafenvConfig>({
       sources: [
         {
-          files: [
-            `${this.options.configFile}.ts`,
-            `${this.options.configFile}.js`,
-            `${this.options.configFile}.json`,
-            `${this.options.configFile}.yaml`,
-            `${this.options.configFile}.yml`,
-          ],
+          files,
         },
       ],
       defaults: {
@@ -87,9 +100,21 @@ export class SafenvCore {
   }
 
   async resolveVariables(config: SafenvConfig): Promise<Record<string, any>> {
+    let allVariables = config.variables
+
+    // Auto-discover dependencies if enabled
+    if (config.autoDependencies) {
+      const dependencyConfigs =
+        await this.dependencyResolver.discoverDependencies()
+      allVariables = this.dependencyResolver.mergeDependencyVariables(
+        config.variables,
+        dependencyConfigs
+      )
+    }
+
     const resolved: Record<string, any> = {}
 
-    for (const [key, variable] of Object.entries(config.variables)) {
+    for (const [key, variable] of Object.entries(allVariables)) {
       let value = process.env[key] ?? variable.default
 
       if (variable.required && value === undefined) {

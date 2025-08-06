@@ -1,14 +1,17 @@
 # @dweb-cloud/safenv
 
-A universal configuration, environment, and variable management library for Node.js projects.
+A universal configuration, environment, and variable management library for Node.js projects with complete type safety and Standard Schema compatibility.
 
 ## Features
 
+- 🛡️ **Complete Type Safety**: Zero `any` types, full TypeScript support with compile-time validation
+- 📋 **Standard Schema V1**: Generate schemas compatible with Zod, Valibot, ArkType, and other validation libraries
 - 🔧 **Universal Configuration**: Manage configurations, environment variables, and values (VAL) in a unified way
+- 🏗️ **Type-Safe Builders**: Use constraint builders and validators for robust configuration
 - 📁 **Multiple Formats**: Support for TS/JS/JSON/YAML configuration files using unconfig
 - 🔌 **Plugin System**: Extensible plugin architecture with built-in plugins
 - 📦 **File Generation**: Generate .env, JSON, YAML, TOML configuration files
-- 🎯 **TypeScript Support**: Generate TypeScript validators and typed exports
+- 🎯 **Smart Constraints**: Rich constraint system with built-in validators
 - 👁️ **Watch Mode**: Real-time configuration updates in serve mode
 - 🏗️ **Build Mode**: One-time execution for CI/CD pipelines
 - 🏢 **Workspace Support**: Manage multiple safenv configurations
@@ -24,43 +27,88 @@ npm install zod
 
 ## Quick Start
 
+### Basic Usage
+
 1. Create a `safenv.config.ts` file:
 
 ```typescript
-import { GenFilePlugin, GenTsPlugin } from '@dweb-cloud/safenv'
-import type { SafenvConfig } from '@dweb-cloud/safenv'
+import {
+  defineConfig,
+  stringVar,
+  numberVar,
+  constraints,
+} from '@dweb-cloud/safenv'
+import { GenTsPlugin } from '@dweb-cloud/safenv'
 
-const config: SafenvConfig = {
+const config = defineConfig({
   name: 'my_project',
   variables: {
-    NODE_ENV: {
-      type: 'string',
+    NODE_ENV: stringVar({
+      description: 'Node environment',
       default: 'development',
-      required: true,
-    },
-    PORT: {
-      type: 'number',
+      constraints: constraints.string.nonEmpty(),
+    }),
+    PORT: numberVar({
+      description: 'Server port',
       default: 3000,
-    },
-    DATABASE_URL: {
-      type: 'string',
+      constraints: constraints.number.port(),
+    }),
+    DATABASE_URL: stringVar({
+      description: 'Database connection URL',
       required: true,
-    },
+      constraints: constraints.string.url(),
+    }),
   },
   plugins: [
-    new GenFilePlugin({
-      name: 'my_project',
-      formats: ['env', 'json'],
-    }),
     new GenTsPlugin({
       outputPath: './src/config.ts',
-      validatorStyle: 'zod',
+      validatorStyle: 'pure', // Generates Standard Schema compatible code
       exportMode: 'process.env',
     }),
   ],
-}
+})
 
 export default config
+```
+
+### Using with Validation Libraries
+
+The generated Standard Schema works with any compatible validation library:
+
+```typescript
+// With Zod
+import { z } from 'zod'
+import { config } from './src/config'
+
+const zodSchema = z.object({
+  NODE_ENV: z.string(),
+  PORT: z.number(),
+  DATABASE_URL: z.string().url(),
+})
+
+const validatedConfig = zodSchema.parse(config)
+
+// With Valibot
+import * as v from 'valibot'
+
+const valibotSchema = v.object({
+  NODE_ENV: v.string(),
+  PORT: v.number(),
+  DATABASE_URL: v.pipe(v.string(), v.url()),
+})
+
+const validatedConfig = v.parse(valibotSchema, config)
+
+// With ArkType
+import { type } from 'arktype'
+
+const arkTypeSchema = type({
+  NODE_ENV: 'string',
+  PORT: 'number',
+  DATABASE_URL: 'string',
+})
+
+const validatedConfig = arkTypeSchema(config)
 ```
 
 2. Run safenv:

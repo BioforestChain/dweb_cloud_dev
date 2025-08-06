@@ -15,11 +15,6 @@ export interface GenFilePluginOptions {
   name: string
   formats: Array<'env' | 'json' | 'yaml' | 'toml'>
   outputDir?: string
-  webUi?: {
-    enabled: boolean
-    port?: number
-    host?: string
-  }
   htmlTools?: {
     enabled: boolean
     outputPath?: string

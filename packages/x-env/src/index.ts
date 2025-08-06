@@ -5,10 +5,12 @@ import { SafenvWorkspace } from './workspace.ts'
 import type { SafenvOptions } from './types.ts'
 
 export * from './types.ts'
+export * from './config-builder.ts'
 export { SafenvCore } from './core.ts'
 export { SafenvServer } from './server.ts'
 export { SafenvBuilder } from './builder.ts'
 export { SafenvWorkspace } from './workspace.ts'
+export { UIServer } from './ui-server.ts'
 export * from './plugins/index.ts'
 export * from './adapters.ts'
 
