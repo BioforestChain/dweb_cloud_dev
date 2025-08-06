@@ -1,11 +1,19 @@
-import type { SafenvContext } from '../types.ts'
+// 重新导出新的插件系统
+export type {
+  SafenvPlugin,
+  PluginContext,
+  PluginPhase,
+  PluginExecutionResult,
+} from './plugin-system.ts'
+export {
+  PluginManager,
+  definePlugin,
+  createFilePlugin,
+  createTransformPlugin,
+  createValidationPlugin,
+} from './plugin-system.ts'
 
-export interface SafenvPlugin {
-  name: string
-  apply: (context: SafenvContext) => Promise<void> | void
-  cleanup?: () => Promise<void> | void
-}
-
+// 插件配置接口
 export interface SafenvPluginConfig {
   name: string
   options?: any
@@ -51,6 +59,7 @@ export interface GenTsPluginOptions {
     | 'toml-file'
   exportType?: 'named' | 'default' | 'object'
   exportName?: string
+  envFilePath?: string
   customDeps?: string[]
   customInjectCode?: string[]
 }

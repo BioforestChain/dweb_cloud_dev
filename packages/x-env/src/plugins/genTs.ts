@@ -1,126 +1,118 @@
-import { BasePlugin } from './base.ts'
+import { resolve } from 'node:path'
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
+import { dirname } from 'node:path'
 import type { GenTsPluginOptions } from './types.ts'
-import type { SafenvContext, SafenvVariable } from '../types.ts'
+import type { SafenvContext, SafenvVariable, SafenvPlugin } from '../types.ts'
 
-export class GenTsPlugin extends BasePlugin {
-  name = 'genTsPlugin'
+/**
+ * Generate TypeScript validation code with Standard Schema support
+ * @param options Plugin configuration options
+ * @returns SafenvPlugin instance
+ */
+export function genTsPlugin(options: GenTsPluginOptions): SafenvPlugin {
+  return {
+    name: 'genTsPlugin',
 
-  constructor(private options: GenTsPluginOptions) {
-    super()
+    async afterGenerate(context: SafenvContext): Promise<void> {
+      const content = generateStandardSchemaContent(context, options)
+      writeFile(options.outputPath, content)
+      console.log(
+        `genTsPlugin: Generated TypeScript file at ${options.outputPath}`
+      )
+    },
+
+    async cleanup(): Promise<void> {
+      // Cleanup logic if needed
+    },
   }
-
-  async apply(context: SafenvContext): Promise<void> {
-    const content = this.generateStandardSchemaContent(context)
-    this.writeFile(this.options.outputPath, content)
-  }
-
-  private generateStandardSchemaContent(context: SafenvContext): string {
-    const parts: string[] = []
-
-    // Add Standard Schema interface import
-    parts.push(this.generateStandardSchemaImport())
-
-    // Generate the schema type definition
-    parts.push(this.generateSchemaTypeDefinition(context))
-
-    // Generate the main validation function
-    parts.push(this.generateValidationFunction(context))
-
-    // Generate export based on export mode
-    if (this.options.exportMode) {
-      parts.push(this.generateExport(context))
-    }
-
-    return parts.join('\n\n')
-  }
-
-  private generateStandardSchemaImport(): string {
-    return `/** Standard Schema interface for TypeScript schema validation libraries */
-export interface StandardSchemaV1<Input = unknown, Output = Input> {
-  readonly '~standard': StandardSchemaV1.Props<Input, Output>;
 }
 
-export declare namespace StandardSchemaV1 {
-  export interface Props<Input = unknown, Output = Input> {
-    readonly version: 1;
-    readonly vendor: string;
-    readonly validate: (value: unknown) => Result<Output> | Promise<Result<Output>>;
-    readonly types?: Types<Input, Output> | undefined;
+// Helper function to ensure directory exists and write file
+function writeFile(filePath: string, content: string): void {
+  const dir = dirname(filePath)
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true })
+  }
+  writeFileSync(filePath, content, 'utf8')
+}
+
+function generateStandardSchemaContent(
+  context: SafenvContext,
+  options: GenTsPluginOptions
+): string {
+  const parts: string[] = []
+
+  // Add Standard Schema interface import
+  parts.push(generateStandardSchemaImport())
+
+  // Generate the schema type definition
+  parts.push(generateSchemaTypeDefinition(context))
+
+  // Generate the main validation function
+  parts.push(generateValidationFunction(context, options))
+
+  // Generate export based on export mode
+  if (options.exportMode) {
+    parts.push(generateExport(context, options))
   }
 
-  export type Result<Output> = SuccessResult<Output> | FailureResult;
+  return parts.join('\n\n')
+}
 
-  export interface SuccessResult<Output> {
-    readonly value: Output;
-    readonly issues?: undefined;
+function generateStandardSchemaImport(): string {
+  return `// Standard Schema interface for validation
+export namespace StandardSchemaV1 {
+  export interface Result<T> {
+    value?: T
+    issues?: Issue[]
   }
-
-  export interface FailureResult {
-    readonly issues: ReadonlyArray<Issue>;
-  }
-
+  
   export interface Issue {
-    readonly message: string;
-    readonly path?: ReadonlyArray<PropertyKey | PathSegment> | undefined;
+    message: string
+    path?: (string | number)[]
   }
-
-  export interface PathSegment {
-    readonly key: PropertyKey;
-  }
-
-  export interface Types<Input = unknown, Output = Input> {
-    readonly input: Input;
-    readonly output: Output;
-  }
-
-  export type InferInput<Schema extends StandardSchemaV1> = NonNullable<
-    Schema['~standard']['types']
-  >['input'];
-
-  export type InferOutput<Schema extends StandardSchemaV1> = NonNullable<
-    Schema['~standard']['types']
-  >['output'];
 }`
-  }
-
-  private generateSchemaTypeDefinition(context: SafenvContext): string {
-    const configName = context.config.name
-    const pascalCaseName = this.toPascalCase(configName)
-
-    // Generate TypeScript interface for the expected shape
-    const interfaceFields = Object.entries(context.config.variables)
-      .map(([key, variable]) => {
-        const tsType = this.getTypeScriptType(variable)
-        const optional = !variable.required ? '?' : ''
-        const comment = variable.description
-          ? `  /** ${variable.description} */\n`
-          : ''
-        return `${comment}  ${key}${optional}: ${tsType}`
-      })
-      .join('\n')
-
-    return `/** Configuration interface for ${configName} */
-export interface ${pascalCaseName}Config {
-${interfaceFields}
 }
 
-/** Standard Schema for ${configName} configuration */
-export interface ${pascalCaseName}Schema extends StandardSchemaV1<${pascalCaseName}Config> {
-  readonly name: '${configName}';
-}`
+function generateSchemaTypeDefinition(context: SafenvContext): string {
+  const configName = context.config.name
+  const pascalCaseName = toPascalCase(configName)
+
+  const interfaceFields: string[] = []
+  Object.entries(context.config.variables).forEach(([key, variable]) => {
+    const optional = !variable.required ? '?' : ''
+    const tsType = getTypeScriptType(variable)
+    interfaceFields.push(`  ${key}${optional}: ${tsType}`)
+  })
+
+  return `// TypeScript interface for ${configName} configuration
+export interface ${pascalCaseName}Config {
+${interfaceFields.join('\n')}
+}
+
+// Standard Schema type definition
+export interface ${pascalCaseName}Schema {
+  name: string
+  '~standard': {
+    version: 1
+    vendor: 'safenv'
+    validate(value: unknown): StandardSchemaV1.Result<${pascalCaseName}Config>
+    types?: any
   }
+}`
+}
 
-  private generateValidationFunction(context: SafenvContext): string {
-    const configName = context.config.name
-    const pascalCaseName = this.toPascalCase(configName)
-    const functionName =
-      this.options.validatorName || `create${pascalCaseName}Schema`
+function generateValidationFunction(
+  context: SafenvContext,
+  options: GenTsPluginOptions
+): string {
+  const configName = context.config.name
+  const pascalCaseName = toPascalCase(configName)
+  const functionName = options.validatorName || `create${pascalCaseName}Schema`
 
-    const validationLogic = this.generateValidationLogic(
-      context.config.variables
-    )
+  const validationLogic = generateValidationLogic(context.config.variables)
 
-    return `/** Creates a Standard Schema validator for ${configName} configuration */
+  return `/** Creates a Standard Schema validator for ${configName} configuration */
 export function ${functionName}(): ${pascalCaseName}Schema {
   return {
     name: '${configName}',
@@ -130,383 +122,451 @@ export function ${functionName}(): ${pascalCaseName}Schema {
       validate(value: unknown): StandardSchemaV1.Result<${pascalCaseName}Config> {
         ${validationLogic}
       },
-      types: {} as StandardSchemaV1.Types<${pascalCaseName}Config, ${pascalCaseName}Config>
+      types: undefined as any // Standard Schema types are optional
     }
   }
 }`
-  }
+}
 
-  private generateValidationLogic(
-    variables: Record<string, SafenvVariable>
-  ): string {
-    const validationSteps: string[] = []
+function generateValidationLogic(
+  variables: Record<string, SafenvVariable>
+): string {
+  const validationSteps: string[] = []
 
-    validationSteps.push('const issues: StandardSchemaV1.Issue[] = []')
-    validationSteps.push('const result: Partial<any> = {}')
-    validationSteps.push('')
-    validationSteps.push('// Type check: ensure input is an object')
-    validationSteps.push(
-      'if (typeof value !== "object" || value === null || Array.isArray(value)) {'
-    )
-    validationSteps.push(
-      '  return { issues: [{ message: "Expected an object" }] }'
-    )
-    validationSteps.push('}')
-    validationSteps.push('')
-    validationSteps.push('const input = value as Record<string, unknown>')
-    validationSteps.push('')
+  validationSteps.push('const issues: StandardSchemaV1.Issue[] = []')
+  validationSteps.push('const result: Record<string, any> = {}')
+  validationSteps.push('')
+  validationSteps.push('// Type check: ensure input is an object')
+  validationSteps.push(
+    'if (typeof value !== "object" || value === null || Array.isArray(value)) {'
+  )
+  validationSteps.push(
+    '  return { issues: [{ message: "Expected an object, got " + typeof value }] }'
+  )
+  validationSteps.push('}')
+  validationSteps.push('')
+  validationSteps.push('const input = value as Record<string, unknown>')
+  validationSteps.push('')
 
-    Object.entries(variables).forEach(([key, variable]) => {
-      validationSteps.push(`// Validate ${key}`)
-      validationSteps.push(`{`)
-      validationSteps.push(`  const fieldValue = input.${key}`)
+  Object.entries(variables).forEach(([key, variable]) => {
+    validationSteps.push(`// Validate field: ${key}`)
+    validationSteps.push(`{`)
+    validationSteps.push(`  const fieldValue = input[${JSON.stringify(key)}]`)
 
-      if (variable.required) {
-        validationSteps.push(`  if (fieldValue === undefined) {`)
-        validationSteps.push(
-          `    issues.push({ message: "Required field '${key}' is missing", path: ['${key}'] })`
-        )
+    if (variable.required) {
+      validationSteps.push(
+        `  if (fieldValue === undefined || fieldValue === null) {`
+      )
+      validationSteps.push(
+        `    issues.push({ message: "Required field '${key}' is missing or null", path: [${JSON.stringify(key)}] })`
+      )
+      validationSteps.push(`  } else {`)
+      validationSteps.push(`    ${generateFieldValidation(key, variable)}`)
+      validationSteps.push(`  }`)
+    } else {
+      validationSteps.push(
+        `  if (fieldValue !== undefined && fieldValue !== null) {`
+      )
+      validationSteps.push(`    ${generateFieldValidation(key, variable)}`)
+      if (variable.default !== undefined) {
         validationSteps.push(`  } else {`)
         validationSteps.push(
-          `    ${this.generateFieldValidation(key, variable)}`
+          `    result[${JSON.stringify(key)}] = ${JSON.stringify(variable.default)}`
+        )
+      }
+      validationSteps.push(`  }`)
+    }
+
+    validationSteps.push(`}`)
+    validationSteps.push('')
+  })
+
+  validationSteps.push('if (issues.length > 0) {')
+  validationSteps.push('  return { issues }')
+  validationSteps.push('}')
+  validationSteps.push('')
+  validationSteps.push('return { value: result }')
+
+  return validationSteps.join('\n        ')
+}
+
+function generateFieldValidation(
+  key: string,
+  variable: SafenvVariable
+): string {
+  const validationSteps: string[] = []
+  const keyJson = JSON.stringify(key)
+
+  switch (variable.type) {
+    case 'string':
+      validationSteps.push(`if (typeof fieldValue !== 'string') {`)
+      validationSteps.push(
+        `  issues.push({ message: "Field '${key}' must be a string, got " + typeof fieldValue, path: [${keyJson}] })`
+      )
+      validationSteps.push(`} else {`)
+
+      // Add custom validation if present
+      if (variable.validate) {
+        validationSteps.push(`  // Custom validation`)
+        validationSteps.push(`  try {`)
+        validationSteps.push(
+          `    const validationResult = (${variable.validate.toString()})(fieldValue)`
+        )
+        validationSteps.push(`    if (validationResult !== true) {`)
+        validationSteps.push(
+          `      const errorMsg = typeof validationResult === 'string' ? validationResult : "Custom validation failed"`
+        )
+        validationSteps.push(
+          `      issues.push({ message: "Field '${key}': " + errorMsg, path: [${keyJson}] })`
+        )
+        validationSteps.push(`    } else {`)
+        validationSteps.push(`      result[${keyJson}] = fieldValue`)
+        validationSteps.push(`    }`)
+        validationSteps.push(`  } catch (err) {`)
+        validationSteps.push(
+          `    issues.push({ message: "Field '${key}': Validation error - " + (err instanceof Error ? err.message : String(err)), path: [${keyJson}] })`
         )
         validationSteps.push(`  }`)
       } else {
-        validationSteps.push(`  if (fieldValue !== undefined) {`)
-        validationSteps.push(
-          `    ${this.generateFieldValidation(key, variable)}`
-        )
-        validationSteps.push(
-          `  }${variable.default !== undefined ? ` else {\n    result.${key} = ${JSON.stringify(variable.default)}\n  }` : ''}`
-        )
+        validationSteps.push(`  result[${keyJson}] = fieldValue`)
       }
 
       validationSteps.push(`}`)
-      validationSteps.push('')
-    })
+      break
 
-    validationSteps.push('if (issues.length > 0) {')
-    validationSteps.push('  return { issues }')
-    validationSteps.push('}')
-    validationSteps.push('')
-    validationSteps.push('return { value: result as any }')
+    case 'number':
+      validationSteps.push(`if (typeof fieldValue !== 'number') {`)
+      validationSteps.push(
+        `  issues.push({ message: "Field '${key}' must be a number, got " + typeof fieldValue, path: [${keyJson}] })`
+      )
+      validationSteps.push(`} else {`)
 
-    return validationSteps.join('\n        ')
-  }
-
-  private generateFieldValidation(
-    key: string,
-    variable: SafenvVariable
-  ): string {
-    const validationSteps: string[] = []
-
-    switch (variable.type) {
-      case 'string':
-        validationSteps.push(`if (typeof fieldValue !== 'string') {`)
-        validationSteps.push(
-          `  issues.push({ message: "Field '${key}' must be a string", path: ['${key}'] })`
-        )
-        validationSteps.push(`} else {`)
-        if (variable.validate) {
-          validationSteps.push(`  // Custom validation would go here`)
-        }
-        validationSteps.push(`  result.${key} = fieldValue`)
-        validationSteps.push(`}`)
-        break
-
-      case 'number':
-        validationSteps.push(
-          `const numValue = typeof fieldValue === 'string' ? Number(fieldValue) : fieldValue`
-        )
-        validationSteps.push(
-          `if (typeof numValue !== 'number' || isNaN(numValue)) {`
-        )
-        validationSteps.push(
-          `  issues.push({ message: "Field '${key}' must be a number", path: ['${key}'] })`
-        )
-        validationSteps.push(`} else {`)
-        validationSteps.push(`  result.${key} = numValue`)
-        validationSteps.push(`}`)
-        break
-
-      case 'boolean':
-        validationSteps.push(`let boolValue: boolean`)
-        validationSteps.push(`if (typeof fieldValue === 'boolean') {`)
-        validationSteps.push(`  boolValue = fieldValue`)
-        validationSteps.push(`} else if (typeof fieldValue === 'string') {`)
-        validationSteps.push(
-          `  boolValue = fieldValue.toLowerCase() === 'true' || fieldValue === '1'`
-        )
-        validationSteps.push(`} else {`)
-        validationSteps.push(
-          `  issues.push({ message: "Field '${key}' must be a boolean", path: ['${key}'] })`
-        )
-        validationSteps.push(`  return { issues }`)
-        validationSteps.push(`}`)
-        validationSteps.push(`result.${key} = boolValue`)
-        break
-
-      case 'array':
-        validationSteps.push(`let arrayValue: string[]`)
-        validationSteps.push(`if (Array.isArray(fieldValue)) {`)
-        validationSteps.push(`  arrayValue = fieldValue.map(String)`)
-        validationSteps.push(`} else if (typeof fieldValue === 'string') {`)
-        validationSteps.push(
-          `  arrayValue = fieldValue.split(',').map(s => s.trim())`
-        )
-        validationSteps.push(`} else {`)
-        validationSteps.push(
-          `  issues.push({ message: "Field '${key}' must be an array or comma-separated string", path: ['${key}'] })`
-        )
-        validationSteps.push(`  return { issues }`)
-        validationSteps.push(`}`)
-        validationSteps.push(`result.${key} = arrayValue`)
-        break
-
-      case 'object':
-        validationSteps.push(`let objValue: any`)
-        validationSteps.push(
-          `if (typeof fieldValue === 'object' && fieldValue !== null && !Array.isArray(fieldValue)) {`
-        )
-        validationSteps.push(`  objValue = fieldValue`)
-        validationSteps.push(`} else if (typeof fieldValue === 'string') {`)
+      if (variable.validate) {
+        validationSteps.push(`  // Custom validation`)
         validationSteps.push(`  try {`)
-        validationSteps.push(`    objValue = JSON.parse(fieldValue)`)
-        validationSteps.push(`  } catch {`)
         validationSteps.push(
-          `    issues.push({ message: "Field '${key}' must be valid JSON", path: ['${key}'] })`
+          `    const validationResult = (${variable.validate.toString()})(fieldValue)`
         )
-        validationSteps.push(`    return { issues }`)
+        validationSteps.push(`    if (validationResult !== true) {`)
+        validationSteps.push(
+          `      const errorMsg = typeof validationResult === 'string' ? validationResult : "Custom validation failed"`
+        )
+        validationSteps.push(
+          `      issues.push({ message: "Field '${key}': " + errorMsg, path: [${keyJson}] })`
+        )
+        validationSteps.push(`    } else {`)
+        validationSteps.push(`      result[${keyJson}] = fieldValue`)
+        validationSteps.push(`    }`)
+        validationSteps.push(`  } catch (err) {`)
+        validationSteps.push(
+          `    issues.push({ message: "Field '${key}': Validation error - " + (err instanceof Error ? err.message : String(err)), path: [${keyJson}] })`
+        )
         validationSteps.push(`  }`)
-        validationSteps.push(`} else {`)
+      } else {
+        validationSteps.push(`  result[${keyJson}] = fieldValue`)
+      }
+
+      validationSteps.push(`}`)
+      break
+
+    case 'boolean':
+      validationSteps.push(`if (typeof fieldValue !== 'boolean') {`)
+      validationSteps.push(
+        `  issues.push({ message: "Field '${key}' must be a boolean, got " + typeof fieldValue, path: [${keyJson}] })`
+      )
+      validationSteps.push(`} else {`)
+
+      if (variable.validate) {
+        validationSteps.push(`  // Custom validation`)
+        validationSteps.push(`  try {`)
         validationSteps.push(
-          `  issues.push({ message: "Field '${key}' must be an object", path: ['${key}'] })`
+          `    const validationResult = (${variable.validate.toString()})(fieldValue)`
         )
-        validationSteps.push(`  return { issues }`)
-        validationSteps.push(`}`)
-        validationSteps.push(`result.${key} = objValue`)
-        break
-
-      default:
-        validationSteps.push(`result.${key} = String(fieldValue)`)
-    }
-
-    return validationSteps.join('\n      ')
-  }
-
-  private getTypeScriptType(variable: SafenvVariable): string {
-    switch (variable.type) {
-      case 'string':
-        return 'string'
-      case 'number':
-        return 'number'
-      case 'boolean':
-        return 'boolean'
-      case 'array':
-        return 'string[]'
-      case 'object':
-        return 'Record<string, any>'
-      default:
-        return 'string'
-    }
-  }
-
-  private toPascalCase(str: string): string {
-    return str
-      .split(/[-_\s]+/)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join('')
-  }
-
-  private generateExport(context: SafenvContext): string {
-    const exportName = this.options.exportName || 'config'
-    const configName = context.config.name
-    const pascalCaseName = this.toPascalCase(configName)
-    const schemaFunctionName =
-      this.options.validatorName || `create${pascalCaseName}Schema`
-
-    switch (this.options.exportMode) {
-      case 'process.env':
-        return this.generateProcessEnvExport(exportName, schemaFunctionName)
-
-      case 'process.env-static':
-        return this.generateStaticExport(
-          context,
-          exportName,
-          schemaFunctionName
+        validationSteps.push(`    if (validationResult !== true) {`)
+        validationSteps.push(
+          `      const errorMsg = typeof validationResult === 'string' ? validationResult : "Custom validation failed"`
         )
-
-      case 'env-file':
-        return this.generateEnvFileExport(
-          context,
-          exportName,
-          schemaFunctionName
+        validationSteps.push(
+          `      issues.push({ message: "Field '${key}': " + errorMsg, path: [${keyJson}] })`
         )
+        validationSteps.push(`    } else {`)
+        validationSteps.push(`      result[${keyJson}] = fieldValue`)
+        validationSteps.push(`    }`)
+        validationSteps.push(`  } catch (err) {`)
+        validationSteps.push(
+          `    issues.push({ message: "Field '${key}': Validation error - " + (err instanceof Error ? err.message : String(err)), path: [${keyJson}] })`
+        )
+        validationSteps.push(`  }`)
+      } else {
+        validationSteps.push(`  result[${keyJson}] = fieldValue`)
+      }
 
-      case 'json-file':
-      case 'yaml-file':
-      case 'toml-file':
-        return this.generateFileExport(context, exportName, schemaFunctionName)
+      validationSteps.push(`}`)
+      break
 
-      default:
-        return this.generateProcessEnvExport(exportName, schemaFunctionName)
-    }
+    case 'array':
+      validationSteps.push(`if (!Array.isArray(fieldValue)) {`)
+      validationSteps.push(
+        `  issues.push({ message: "Field '${key}' must be an array, got " + typeof fieldValue, path: [${keyJson}] })`
+      )
+      validationSteps.push(`} else {`)
+
+      if (variable.validate) {
+        validationSteps.push(`  // Custom validation`)
+        validationSteps.push(`  try {`)
+        validationSteps.push(
+          `    const validationResult = (${variable.validate.toString()})(fieldValue)`
+        )
+        validationSteps.push(`    if (validationResult !== true) {`)
+        validationSteps.push(
+          `      const errorMsg = typeof validationResult === 'string' ? validationResult : "Custom validation failed"`
+        )
+        validationSteps.push(
+          `      issues.push({ message: "Field '${key}': " + errorMsg, path: [${keyJson}] })`
+        )
+        validationSteps.push(`    } else {`)
+        validationSteps.push(`      result[${keyJson}] = fieldValue`)
+        validationSteps.push(`    }`)
+        validationSteps.push(`  } catch (err) {`)
+        validationSteps.push(
+          `    issues.push({ message: "Field '${key}': Validation error - " + (err instanceof Error ? err.message : String(err)), path: [${keyJson}] })`
+        )
+        validationSteps.push(`  }`)
+      } else {
+        validationSteps.push(`  result[${keyJson}] = fieldValue`)
+      }
+
+      validationSteps.push(`}`)
+      break
+
+    case 'object':
+      validationSteps.push(
+        `if (typeof fieldValue !== 'object' || fieldValue === null || Array.isArray(fieldValue)) {`
+      )
+      validationSteps.push(
+        `  issues.push({ message: "Field '${key}' must be an object, got " + typeof fieldValue, path: [${keyJson}] })`
+      )
+      validationSteps.push(`} else {`)
+
+      if (variable.validate) {
+        validationSteps.push(`  // Custom validation`)
+        validationSteps.push(`  try {`)
+        validationSteps.push(
+          `    const validationResult = (${variable.validate.toString()})(fieldValue)`
+        )
+        validationSteps.push(`    if (validationResult !== true) {`)
+        validationSteps.push(
+          `      const errorMsg = typeof validationResult === 'string' ? validationResult : "Custom validation failed"`
+        )
+        validationSteps.push(
+          `      issues.push({ message: "Field '${key}': " + errorMsg, path: [${keyJson}] })`
+        )
+        validationSteps.push(`    } else {`)
+        validationSteps.push(`      result[${keyJson}] = fieldValue`)
+        validationSteps.push(`    }`)
+        validationSteps.push(`  } catch (err) {`)
+        validationSteps.push(
+          `    issues.push({ message: "Field '${key}': Validation error - " + (err instanceof Error ? err.message : String(err)), path: [${keyJson}] })`
+        )
+        validationSteps.push(`  }`)
+      } else {
+        validationSteps.push(`  result[${keyJson}] = fieldValue`)
+      }
+
+      validationSteps.push(`}`)
+      break
+
+    default:
+      validationSteps.push(`result[${keyJson}] = fieldValue`)
+      break
   }
 
-  private generateProcessEnvExport(
-    exportName: string,
-    schemaFunctionName: string
-  ): string {
-    return `/** Validated configuration from process.env */
-export const ${exportName} = (() => {
-  const schema = ${schemaFunctionName}()
-  const result = schema['~standard'].validate(process.env)
-  
-  if (result.issues) {
-    const errorMessage = result.issues.map((issue: StandardSchemaV1.Issue) => 
-      issue.path ? \`\${issue.path.join('.')}: \${issue.message}\` : issue.message
-    ).join('\\n')
-    throw new Error(\`Configuration validation failed:\\n\${errorMessage}\`)
-  }
-  
-  return result.value
-})()`
-  }
-
-  private generateStaticExport(
-    context: SafenvContext,
-    exportName: string,
-    schemaFunctionName: string
-  ): string {
-    const staticExports = Object.keys(context.config.variables).map(key => {
-      const constName = `${exportName.toUpperCase()}_${key}`
-      return `/** @__PURE__ */ export const ${constName} = (() => {
-  const schema = ${schemaFunctionName}()
-  const result = schema['~standard'].validate({ ${key}: process.env.${key} })
-  return result.issues ? undefined : result.value?.${key}
-})()`
-    })
-
-    return staticExports.join('\n\n')
-  }
-
-  private generateEnvFileExport(
-    context: SafenvContext,
-    exportName: string,
-    schemaFunctionName: string
-  ): string {
-    const deps = this.options.customDeps || []
-    const injectCode = this.options.customInjectCode || []
-
-    const imports =
-      deps.length > 0
-        ? deps.map(dep => `import '${dep}'`).join('\n') + '\n'
-        : ''
-    const injectedCode = injectCode.join('\n')
-
-    return `${imports}${injectedCode}
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
-
-const envFile = resolve(import.meta.dirname, '${context.config.name}.safenv.env')
-if (existsSync(envFile)) {
-  process.loadEnvFile(envFile)
+  return validationSteps.join('\n    ')
 }
 
-/** Validated configuration from .env file */
-export const ${exportName} = (() => {
-  const schema = ${schemaFunctionName}()
-  const result = schema['~standard'].validate(process.env)
-  
-  if (result.issues) {
-    const errorMessage = result.issues.map((issue: StandardSchemaV1.Issue) => 
-      issue.path ? \`\${issue.path.join('.')}: \${issue.message}\` : issue.message
-    ).join('\\n')
-    throw new Error(\`Configuration validation failed:\\n\${errorMessage}\`)
+function getTypeScriptType(variable: SafenvVariable): string {
+  switch (variable.type) {
+    case 'string':
+      return 'string'
+    case 'number':
+      return 'number'
+    case 'boolean':
+      return 'boolean'
+    case 'array':
+      // For arrays, try to infer element type from default value or use string[] as default
+      if (
+        variable.default &&
+        Array.isArray(variable.default) &&
+        variable.default.length > 0
+      ) {
+        const firstElement = variable.default[0]
+        const elementType = typeof firstElement
+        if (
+          elementType === 'string' ||
+          elementType === 'number' ||
+          elementType === 'boolean'
+        ) {
+          return `${elementType}[]`
+        }
+      }
+      return 'string[]' // Default to string[] for arrays
+    case 'object':
+      return 'Record<string, any>'
+    default:
+      return 'unknown'
   }
-  
-  return result.value
-})()`
-  }
-
-  private generateFileExport(
-    context: SafenvContext,
-    exportName: string,
-    schemaFunctionName: string
-  ): string {
-    const mode = this.options.exportMode!
-    const extension = mode.split('-')[0]
-    const deps = this.options.customDeps || this.getDefaultDeps(extension)
-    const injectCode =
-      this.options.customInjectCode || this.getDefaultInjectCode(extension)
-
-    const imports = deps.map(dep => `import '${dep}'`).join('\n')
-    const fileName = `${context.config.name}.safenv.${extension}`
-
-    return `${imports}
-${injectCode.join('\n')}
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-
-const configFile = resolve(import.meta.dirname, '${fileName}')
-let config = {}
-if (existsSync(configFile)) {
-  const content = readFileSync(configFile, 'utf8')
-  config = ${this.getParseFunction(extension)}(content)
 }
 
-/** Validated configuration from ${extension.toUpperCase()} file */
-export const ${exportName} = (() => {
-  const schema = ${schemaFunctionName}()
-  const result = schema['~standard'].validate(config)
-  
-  if (result.issues) {
-    const errorMessage = result.issues.map((issue: StandardSchemaV1.Issue) => 
-      issue.path ? \`\${issue.path.join('.')}: \${issue.message}\` : issue.message
-    ).join('\\n')
-    throw new Error(\`Configuration validation failed:\\n\${errorMessage}\`)
-  }
-  
-  return result.value
-})()`
-  }
+function toPascalCase(str: string): string {
+  return str.replace(/(?:^|[-_])(\w)/g, (_, char) => char.toUpperCase())
+}
 
-  private getDefaultDeps(extension: string): string[] {
-    switch (extension) {
-      case 'json':
-        return []
-      case 'yaml':
-        return ['js-yaml']
-      case 'toml':
-        return ['@iarna/toml']
-      default:
-        return []
-    }
-  }
+function generateExport(
+  context: SafenvContext,
+  options: GenTsPluginOptions
+): string {
+  const exportMode = options.exportMode
+  const configName = context.config.name
+  const pascalCaseName = toPascalCase(configName)
+  const functionName = options.validatorName || `create${pascalCaseName}Schema`
 
-  private getDefaultInjectCode(extension: string): string[] {
-    switch (extension) {
-      case 'json':
-        return []
-      case 'yaml':
-        return ["import YAML from 'js-yaml'"]
-      case 'toml':
-        return ["import TOML from '@iarna/toml'"]
-      default:
-        return []
-    }
+  switch (exportMode) {
+    case 'process.env':
+      return generateProcessEnvExport(
+        options.exportName || configName,
+        functionName
+      )
+    case 'process.env-static':
+      return generateStaticExport(
+        context,
+        options.exportName || configName,
+        functionName
+      )
+    case 'env-file':
+      return generateEnvFileExport(
+        context,
+        options.exportName || configName,
+        functionName,
+        options
+      )
+    default:
+      return ''
   }
+}
 
-  private getParseFunction(extension: string): string {
-    switch (extension) {
-      case 'json':
-        return 'JSON.parse'
-      case 'yaml':
-        return 'YAML.load'
-      case 'toml':
-        return 'TOML.parse'
-      default:
-        return 'JSON.parse'
-    }
+function generateProcessEnvExport(
+  exportName: string,
+  schemaFunctionName: string
+): string {
+  return `// Export validated environment variables from process.env
+const schema = ${schemaFunctionName}()
+const validationResult = schema['~standard'].validate(process.env)
+
+if (validationResult.issues && validationResult.issues.length > 0) {
+  const errorMessages = validationResult.issues.map(issue => 
+    issue.path ? \`\${issue.path.join('.')}: \${issue.message}\` : issue.message
+  )
+  throw new Error('Environment validation failed:\\n' + errorMessages.join('\\n'))
+}
+
+export const ${exportName} = validationResult.value!`
+}
+
+function generateStaticExport(
+  context: SafenvContext,
+  exportName: string,
+  schemaFunctionName: string
+): string {
+  const exports: string[] = []
+
+  // Generate individual exports for each variable
+  Object.entries(context.resolvedVariables).forEach(([key, value]) => {
+    const exportedName = `${exportName}_${key}`
+    const serializedValue = JSON.stringify(value)
+    exports.push(
+      `export const ${exportedName} = ${serializedValue} /* @__PURE__ */`
+    )
+  })
+
+  // Also export the schema for runtime validation
+  const schemaExport = `export const ${schemaFunctionName.replace('create', '')}Schema = ${schemaFunctionName}()`
+
+  return `// Export static configuration values
+${exports.join('\n')}
+
+// Schema export
+${schemaExport}`
+}
+
+function generateEnvFileExport(
+  context: SafenvContext,
+  exportName: string,
+  schemaFunctionName: string,
+  options: GenTsPluginOptions
+): string {
+  const configName = context.config.name
+  const envFileName = `${configName}.safenv.env`
+
+  return `// Export validated environment variables from file
+// Load environment file using Node.js built-in process.loadEnvFile
+process.loadEnvFile('${envFileName}')
+
+const envData = process.env
+const schema = ${schemaFunctionName}()
+const validationResult = schema['~standard'].validate(envData)
+
+if (validationResult.issues && validationResult.issues.length > 0) {
+  const errorMessages = validationResult.issues.map((issue: any) => 
+    issue.path ? \`\${issue.path.join('.')}: \${issue.message}\` : issue.message
+  )
+  throw new Error('Environment file validation failed:\\n' + errorMessages.join('\\n'))
+}
+
+export const ${exportName} = validationResult.value!`
+}
+
+function getDefaultDeps(extension: string): string[] {
+  switch (extension) {
+    case '.env':
+      return ["{ config } from 'dotenv'"]
+    case '.json':
+      return ["{ readFileSync } from 'fs'"]
+    case '.yaml':
+    case '.yml':
+      return ["{ readFileSync } from 'fs'", "yaml from 'js-yaml'"]
+    case '.toml':
+      return ["{ readFileSync } from 'fs'", "TOML from '@iarna/toml'"]
+    default:
+      return []
+  }
+}
+
+function getDefaultInjectCode(extension: string): string {
+  switch (extension) {
+    case '.env':
+      return 'config()'
+    case '.json':
+    case '.yaml':
+    case '.yml':
+    case '.toml':
+      return `const configPath = process.env.CONFIG_PATH || '${extension}'`
+    default:
+      return ''
+  }
+}
+
+function getParseFunction(extension: string): string {
+  switch (extension) {
+    case '.env':
+      return 'process.env'
+    case '.json':
+      return 'JSON.parse(readFileSync(configPath, "utf8"))'
+    case '.yaml':
+    case '.yml':
+      return 'yaml.load(readFileSync(configPath, "utf8"))'
+    case '.toml':
+      return 'TOML.parse(readFileSync(configPath, "utf8"))'
+    default:
+      return 'process.env'
   }
 }

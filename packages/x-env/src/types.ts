@@ -77,7 +77,9 @@ export type SafenvResolvedValue<T extends SafenvPrimitiveType> =
 
 // Custom validation function with proper typing
 // Validators receive the raw input value (string from env vars) and should validate/transform it
-export type SafenvValidator<T extends SafenvPrimitiveType> = (
+export type SafenvValidator<
+  _T extends SafenvPrimitiveType = SafenvPrimitiveType,
+> = (
   value: string | number | boolean | Record<string, unknown> | unknown[]
 ) => boolean | string
 

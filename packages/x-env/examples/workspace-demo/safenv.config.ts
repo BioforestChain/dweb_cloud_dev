@@ -75,9 +75,14 @@ export default defineConfig({
       type: 'string',
       description: 'Global logging level',
       default: 'info',
-      validate: (value: string) => {
+      validate: (
+        value: string | number | boolean | Record<string, unknown> | unknown[]
+      ) => {
+        if (typeof value !== 'string') return 'Must be a string'
         const levels = ['error', 'warn', 'info', 'debug']
-        return levels.includes(value) || `Must be one of: ${levels.join(', ')}`
+        return levels.includes(value)
+          ? true
+          : `Must be one of: ${levels.join(', ')}`
       },
     },
     // Environment settings
@@ -85,9 +90,14 @@ export default defineConfig({
       type: 'string',
       description: 'Node.js environment',
       default: 'development',
-      validate: (value: string) => {
+      validate: (
+        value: string | number | boolean | Record<string, unknown> | unknown[]
+      ) => {
+        if (typeof value !== 'string') return 'Must be a string'
         const envs = ['development', 'test', 'production']
-        return envs.includes(value) || `Must be one of: ${envs.join(', ')}`
+        return envs.includes(value)
+          ? true
+          : `Must be one of: ${envs.join(', ')}`
       },
     },
   },
