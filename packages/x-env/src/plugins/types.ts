@@ -4,14 +4,14 @@ export type {
   PluginContext,
   PluginPhase,
   PluginExecutionResult,
-} from './plugin-system.ts'
+} from './plugin-system'
 export {
   PluginManager,
   definePlugin,
   createFilePlugin,
   createTransformPlugin,
   createValidationPlugin,
-} from './plugin-system.ts'
+} from './plugin-system'
 
 // 插件配置接口
 export interface SafenvPluginConfig {

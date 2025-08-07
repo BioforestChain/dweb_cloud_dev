@@ -1,23 +1,29 @@
 # 📚 x-env 示例集合
 
-这个目录包含了 x-env 的各种使用示例，展示了从基础配置到高级功能的完整用法。
+这个目录包含了 x-env 的核心使用示例，展示了从基础配置到高级功能的完整用法。
 
-## 🚀 Workspace 集成示例
+## 🎯 核心示例
 
-### 完整的 pnpm workspace 示例
+### 1. 综合演示项目
 
-- **`workspace-demo/`** - 完整的 pnpm workspace 示例，展示多项目环境变量管理
-  - 包含两个相互依赖的项目：base-service 和 web-app
-  - 演示环境变量配置共享和依赖管理
-  - 提供完整的开发和部署工作流程
+- **`comprehensive-demo/`** - 完整的 monorepo + 外部依赖包示例
+  - 包含 3 个 monorepo 项目：web-frontend、api-backend、shared-utils
+  - 包含 3 个外部依赖包：auth-service、database-client、cache-redis
+  - 演示 safenv.config 自动发现、类型安全解析、依赖关系图生成
+  - 支持 3 种 exports.safenv 格式：direct、nested、conditional
+  - 提供完整的演示脚本和验证工具
 
-## 🏗️ 配置示例
+### 2. TypeScript 类型推导示例
 
-### 基础配置
+- **`type-inference-demo.ts`** - TypeScript 类型推导功能演示
+  - 展示 `defineVariable` 和类型特定辅助函数的使用
+  - 演示 `validate` 函数参数的正确类型推导
+  - 提供同步和异步验证器的使用示例
 
-- **`standard-schema-demo.config.ts`** - 标准 Schema 配置示例
-- **`dependency-example.config.ts`** - 依赖管理配置示例
-- **`ui-demo.config.ts`** - UI 界面配置示例
+- **`test-type-inference.js`** - 类型推导功能运行时验证脚本
+  - 验证辅助函数的正确性
+  - 测试配置结构和验证函数
+  - 提供使用建议和最佳实践
 
 ### 高级配置
 

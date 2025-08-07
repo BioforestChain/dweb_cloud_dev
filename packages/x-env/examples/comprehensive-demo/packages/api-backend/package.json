@@ -1,0 +1,9 @@
+{
+  "name": "api-backend",
+  "version": "1.0.0",
+  "description": "Backend API server",
+  "main": "index.js",
+  "dependencies": {
+    "shared-utils": "workspace:*"
+  }
+}

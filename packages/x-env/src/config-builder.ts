@@ -7,6 +7,7 @@ import type {
   SafenvConfig,
   SafenvVariable,
   SafenvVariables,
+  SafenvPrimitiveType,
   StringConstraints,
   NumberConstraints,
   ArrayConstraints,
@@ -14,78 +15,122 @@ import type {
   StandardSchemaV1,
 } from './types.ts'
 
-// Helper function to create string variables
+// Helper function to create string variables with proper type inference
 export function stringVar(options: {
   description?: string
   default?: string
   required?: boolean
   constraints?: StringConstraints
-  validate?: (value: string) => boolean | string
+  validate?: (value: string) => boolean | string | Promise<boolean | string>
   schema?: StandardSchemaV1<unknown, string>
+  env?: string
+  sensitive?: boolean
 }): SafenvVariable<'string'> {
   return {
-    type: 'string',
+    type: 'string' as const,
     ...options,
   }
 }
 
-// Helper function to create number variables
+// Helper function to create number variables with proper type inference
 export function numberVar(options: {
   description?: string
   default?: number
   required?: boolean
   constraints?: NumberConstraints
-  validate?: (value: number) => boolean | string
+  validate?: (value: number) => boolean | string | Promise<boolean | string>
   schema?: StandardSchemaV1<unknown, number>
+  env?: string
+  sensitive?: boolean
 }): SafenvVariable<'number'> {
   return {
-    type: 'number',
+    type: 'number' as const,
     ...options,
   }
 }
 
-// Helper function to create boolean variables
+// Helper function to create boolean variables with proper type inference
 export function booleanVar(options: {
   description?: string
   default?: boolean
   required?: boolean
-  validate?: (value: boolean) => boolean | string
+  validate?: (value: boolean) => boolean | string | Promise<boolean | string>
   schema?: StandardSchemaV1<unknown, boolean>
+  env?: string
+  sensitive?: boolean
 }): SafenvVariable<'boolean'> {
   return {
-    type: 'boolean',
+    type: 'boolean' as const,
     ...options,
   }
 }
 
-// Helper function to create array variables
+// Helper function to create array variables with proper type inference
 export function arrayVar(options: {
   description?: string
   default?: unknown[]
   required?: boolean
   constraints?: ArrayConstraints
-  validate?: (value: unknown[]) => boolean | string
+  validate?: (value: unknown[]) => boolean | string | Promise<boolean | string>
   schema?: StandardSchemaV1<unknown, unknown[]>
+  env?: string
+  sensitive?: boolean
 }): SafenvVariable<'array'> {
   return {
-    type: 'array',
+    type: 'array' as const,
     ...options,
   }
 }
 
-// Helper function to create object variables
+// Helper function to create object variables with proper type inference
 export function objectVar(options: {
   description?: string
   default?: Record<string, unknown>
   required?: boolean
   constraints?: ObjectConstraints
-  validate?: (value: Record<string, unknown>) => boolean | string
+  validate?: (
+    value: Record<string, unknown>
+  ) => boolean | string | Promise<boolean | string>
   schema?: StandardSchemaV1<unknown, Record<string, unknown>>
+  env?: string
+  sensitive?: boolean
 }): SafenvVariable<'object'> {
   return {
-    type: 'object',
+    type: 'object' as const,
     ...options,
   }
+}
+
+// Type-safe variable definition with proper type inference
+// This function helps TypeScript correctly infer the type parameter for validate functions
+export function defineVariable(
+  type: 'string',
+  options: Omit<SafenvVariable<'string'>, 'type'>
+): SafenvVariable<'string'>
+export function defineVariable(
+  type: 'number',
+  options: Omit<SafenvVariable<'number'>, 'type'>
+): SafenvVariable<'number'>
+export function defineVariable(
+  type: 'boolean',
+  options: Omit<SafenvVariable<'boolean'>, 'type'>
+): SafenvVariable<'boolean'>
+export function defineVariable(
+  type: 'array',
+  options: Omit<SafenvVariable<'array'>, 'type'>
+): SafenvVariable<'array'>
+export function defineVariable(
+  type: 'object',
+  options: Omit<SafenvVariable<'object'>, 'type'>
+): SafenvVariable<'object'>
+export function defineVariable<T extends SafenvPrimitiveType>(
+  type: T,
+  options: Omit<SafenvVariable<T>, 'type'>
+): SafenvVariable<T> {
+  return {
+    type,
+    ...options,
+  } as SafenvVariable<T>
 }
 
 // Type-safe config builder

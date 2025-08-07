@@ -1,0 +1,9 @@
+{
+  "name": "web-frontend",
+  "version": "1.0.0",
+  "description": "Frontend web application",
+  "main": "index.js",
+  "dependencies": {
+    "shared-utils": "workspace:*"
+  }
+}

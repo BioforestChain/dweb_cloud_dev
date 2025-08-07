@@ -1,16 +1,11 @@
 import type {
   SafenvVariable,
   SafenvPrimitiveType,
-  SafenvResolvedValue,
   StandardSchemaV1,
 } from './types.ts'
 
-/**
- * 异步验证器类型
- */
-export type SafenvAsyncValidator<
-  T extends SafenvPrimitiveType = SafenvPrimitiveType,
-> = (value: SafenvResolvedValue<T>) => Promise<boolean | string>
+// 注意：异步验证器类型已移除，现在统一使用 SafenvValidator 类型
+// SafenvValidator 现在支持同步和异步验证，通过运行时检测 Promise 来区分处理
 
 /**
  * 变量间依赖关系
@@ -33,8 +28,8 @@ export interface VariableDependency {
 export interface EnhancedSafenvVariable<
   T extends SafenvPrimitiveType = SafenvPrimitiveType,
 > extends SafenvVariable<T> {
-  /** 异步验证器 */
-  asyncValidate?: SafenvAsyncValidator<T>
+  /** 扩展验证器（支持同步和异步，已统一到基础 validate 字段） */
+  // asyncValidate 字段已废弃，现在统一使用 validate 字段支持同步和异步验证
   /** 变量间依赖关系 */
   dependencies?: VariableDependency
   /** 变量转换器 */
@@ -189,8 +184,19 @@ export class EnhancedVariableResolver {
             if (!options.skipValidation) {
               const valStartTime = Date.now()
               await this.validateVariable(variableName, variable, resolvedValue)
-              if (variable.asyncValidate) {
-                asyncValidationCount++
+              // 检查是否为异步验证（通过检测 validate 函数返回 Promise）
+              if (
+                variable.validate &&
+                typeof variable.validate === 'function'
+              ) {
+                try {
+                  const result = variable.validate(resolvedValue)
+                  if (result instanceof Promise) {
+                    asyncValidationCount++
+                  }
+                } catch {
+                  // 忽略验证错误，这里只是统计异步验证数量
+                }
               }
               validationTime += Date.now() - valStartTime
             }
@@ -549,11 +555,16 @@ export class EnhancedVariableResolver {
       }
     }
 
-    // 异步验证
-    if (variable.asyncValidate && value !== undefined) {
-      const asyncResult = await variable.asyncValidate(value)
-      if (asyncResult !== true) {
-        throw new Error(`Async validation failed for ${name}: ${asyncResult}`)
+    // 统一验证（支持同步和异步）
+    if (variable.validate && value !== undefined) {
+      const result = variable.validate(value)
+      if (result instanceof Promise) {
+        const asyncResult = await result
+        if (asyncResult !== true) {
+          throw new Error(`Async validation failed for ${name}: ${asyncResult}`)
+        }
+      } else if (result !== true) {
+        throw new Error(`Validation failed for ${name}: ${result}`)
       }
     }
 

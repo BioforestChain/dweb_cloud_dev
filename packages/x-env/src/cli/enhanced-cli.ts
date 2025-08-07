@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 
-import { program } from 'commander'
-import { readFile, writeFile, mkdir } from 'node:fs/promises'
-import { resolve, dirname } from 'node:path'
-import { existsSync } from 'node:fs'
+import { Command } from 'commander'
+import inquirer from 'inquirer'
 import chalk from 'chalk'
 import ora from 'ora'
-import inquirer from 'inquirer'
 import { table } from 'table'
-import { resolveOptimized } from '../optimized-core.ts'
+import { resolve, dirname } from 'node:path'
+import { existsSync } from 'node:fs'
+import { mkdir, writeFile, readFile } from 'node:fs/promises'
 import { PerformanceManager } from '../performance-manager.ts'
-
 import { HotReloadManager } from '../hot-reload-manager.ts'
+import { startVisualizerCommand } from './visualizer-server.ts'
+import { analyzePerformance, analyzeDependencies } from './cli-functions.ts'
+import { resolveOptimized } from '../optimized-core.ts'
 import type { SafenvConfig } from '../types.ts'
 
 /**
@@ -69,7 +70,7 @@ class EnhancedCLI {
     }
 
     await mkdir(dirname(resolve(configPath)), { recursive: true })
-    await writeFile(configPath, JSON.stringify(config, null, 2))
+    await writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8')
 
     console.log(chalk.green(`✅ Configuration file created: ${configPath}`))
     console.log(
@@ -409,15 +410,14 @@ class EnhancedCLI {
       // 显示警告和错误
       if (result.warnings.length > 0) {
         console.log('\n' + chalk.yellow('⚠️  Warnings:'))
-        result.warnings.forEach(warning =>
-          console.log(chalk.yellow(`  • ${warning}`))
+        result.warnings.forEach((warning: any) =>
+          console.log(chalk.yellow(`⚠️  ${warning}`))
         )
       }
 
-      if (result.errors.length > 0) {
-        console.log('\n' + chalk.red('❌ Errors:'))
-        result.errors.forEach(error =>
-          console.log(chalk.red(`  • ${error.message}`))
+      if (result.errors && result.errors.length > 0) {
+        result.errors.forEach((error: any) =>
+          console.log(chalk.red(`❌ ${error}`))
         )
       }
 
@@ -598,7 +598,7 @@ class EnhancedCLI {
     }
 
     await mkdir(dirname(resolve(outputPath)), { recursive: true })
-    await writeFile(outputPath, content)
+    await writeFile(outputPath, content, 'utf-8')
   }
 }
 
@@ -607,6 +607,8 @@ class EnhancedCLI {
  */
 async function main() {
   const cli = new EnhancedCLI()
+
+  const program = new Command()
 
   program
     .name('safenv')
@@ -669,13 +671,45 @@ async function main() {
   program
     .command('analyze')
     .description('Analyze configuration performance')
+    .option('-c, --config <path>', 'Configuration file path')
     .option(
-      '-c, --config <path>',
-      'Configuration file path',
-      'safenv.config.json'
+      '-f, --format <format>',
+      'Output format (json, table, detailed)',
+      'table'
+    )
+    .option('--threshold <ms>', 'Performance threshold in milliseconds', '100')
+    .action(async options => {
+      await analyzePerformance(options)
+    })
+
+  // 依赖可视化命令
+  program
+    .command('visualize')
+    .description('Start dependency visualization server')
+    .option('-p, --port <port>', 'Server port', '3000')
+    .option('--no-open', 'Do not open browser automatically')
+    .option('--project <path>', 'Project path', process.cwd())
+    .action(async options => {
+      await startVisualizerCommand({
+        port: parseInt(options.port),
+        projectPath: options.project,
+        open: options.open,
+      })
+    })
+
+  // 依赖分析命令
+  program
+    .command('deps')
+    .description('Analyze environment variable dependencies')
+    .option('-c, --config <path>', 'Configuration file path')
+    .option('-f, --format <format>', 'Output format (json, table)', 'table')
+    .option(
+      '--filter <category>',
+      'Filter by category (npm, monorepo, all)',
+      'all'
     )
     .action(async options => {
-      await cli.analyzePerformance(options.config, options)
+      await analyzeDependencies(options)
     })
 
   // 监听命令

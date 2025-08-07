@@ -89,7 +89,7 @@ export type SafenvValidator<T extends SafenvPrimitiveType> = (
           : T extends 'object'
             ? Record<string, unknown>
             : never
-) => boolean | string
+) => boolean | string | Promise<boolean | string>
 
 // Enhanced variable definition with type safety
 export interface SafenvVariable<

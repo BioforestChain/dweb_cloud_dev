@@ -7,6 +7,7 @@ import {
   resolveOptimized,
 } from '../optimized-core.ts'
 import type { SafenvConfig } from '../types.ts'
+import { stringVar } from '../config-builder.ts'
 
 describe('OptimizedCore', () => {
   let tempDir: string
@@ -318,6 +319,7 @@ describe('OptimizedCore', () => {
 
   describe('集成测试', () => {
     it('应该与所有增强组件协同工作', async () => {
+      const envDir = join(tempDir, 'env')
       const fullFeaturedConfig: SafenvConfig = {
         variables: {
           NODE_ENV: { value: 'production' },
@@ -327,24 +329,18 @@ describe('OptimizedCore', () => {
             default: 'postgresql://localhost:5432/app',
             type: 'string',
           },
-          REDIS_URL: {
-            value: 'redis://localhost:6379',
-            validate: {
-              pattern: '^redis://.+',
+          REDIS_URL: stringVar({
+            default: 'redis://localhost:6379',
+            validate: value => {
+              return value.startsWith('redis://')
             },
-          },
+          }),
         },
-        dependencies: [
-          {
-            path: './env/.env.local',
-            prefix: 'LOCAL_',
-          },
-        ],
+        dependencies: [join(envDir, '.env.local')],
         plugins: [],
       }
 
       // 创建依赖文件
-      const envDir = join(tempDir, 'env')
       await mkdir(envDir, { recursive: true })
       await writeFile(
         join(envDir, '.env.local'),

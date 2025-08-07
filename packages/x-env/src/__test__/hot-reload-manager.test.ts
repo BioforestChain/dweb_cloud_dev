@@ -470,8 +470,12 @@ export default {
       const events1: HotReloadEvent[] = []
       const events2: HotReloadEvent[] = []
 
-      hotReloadManager.onReload(event => events1.push(event))
-      hotReloadManager.onReload(event => events2.push(event))
+      hotReloadManager.onReload(event => {
+        events1.push(event)
+      })
+      hotReloadManager.onReload(event => {
+        events2.push(event)
+      })
 
       const initialConfig: SafenvConfig = {
         name: 'test-config',
@@ -504,7 +508,9 @@ export default {
 
     it('should support callback removal', async () => {
       const events: HotReloadEvent[] = []
-      const callback = (event: HotReloadEvent) => events.push(event)
+      const callback = (event: HotReloadEvent) => {
+        events.push(event)
+      }
 
       hotReloadManager.onReload(callback)
 
@@ -547,7 +553,9 @@ export default {
 
       const manager = new HotReloadManager(options)
       const events: HotReloadEvent[] = []
-      manager.onReload(event => events.push(event))
+      manager.onReload(event => {
+        events.push(event)
+      })
 
       const initialConfig: SafenvConfig = {
         name: 'test-config',

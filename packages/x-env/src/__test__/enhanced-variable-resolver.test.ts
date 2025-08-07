@@ -4,7 +4,8 @@ import {
   EnhancedSafenvVariable,
   VariableResolutionOptions,
   VariableDependency,
-} from '../enhanced-variable-resolver'
+} from '../enhanced-variable-resolver.ts'
+import { stringVar } from '../config-builder.ts'
 
 describe('EnhancedVariableResolver', () => {
   let resolver: EnhancedVariableResolver
@@ -161,16 +162,15 @@ describe('EnhancedVariableResolver', () => {
       process.env.TEST_VAR = 'test'
 
       const variables: Record<string, EnhancedSafenvVariable> = {
-        TEST_VAR: {
-          type: 'string',
-          asyncValidate: async value => {
+        TEST_VAR: stringVar({
+          validate: async value => {
             await new Promise(resolve => setTimeout(resolve, 10))
             return value.length > 5
               ? true
               : 'Value must be longer than 5 characters'
           },
           description: 'Test variable',
-        },
+        }),
       }
 
       const result = await resolver.resolveVariables(variables)
@@ -444,7 +444,7 @@ describe('EnhancedVariableResolver', () => {
       const variables: Record<string, EnhancedSafenvVariable> = {
         TEST_VAR: {
           type: 'string',
-          asyncValidate: async _value => {
+          validate: async _value => {
             await new Promise(resolve => setTimeout(resolve, 10))
             return true
           },
