@@ -66,13 +66,15 @@ export class SafenvCore {
   private async loadPlugin(
     pluginConfig: SafenvPluginConfig
   ): Promise<SafenvPlugin> {
-    const { GenFilePlugin } = await import('./plugins/genFile.ts')
-    const { GenTsPlugin } = await import('./plugins/genTs.ts')
+    const genFileModule = await import('./plugins/genFile.ts')
+    const genTsModule = await import('./plugins/genTs.ts')
+    const GenFilePlugin = genFileModule.genFilePlugin
+    const GenTsPlugin = genTsModule.genTsPlugin
 
-    const pluginMap: Record<string, new (options?: any) => SafenvPlugin> = {
+    const pluginMap: Record<string, any> = {
       genFilePlugin: GenFilePlugin,
-      genFile: GenFilePlugin,
       genTsPlugin: GenTsPlugin,
+      genFile: GenFilePlugin,
       genTs: GenTsPlugin,
     }
 
@@ -124,9 +126,11 @@ export class SafenvCore {
       }
 
       if (value !== undefined) {
-        value = this.parseValue(value, variable.type)
+        if (variable.type) {
+          value = this.parseValue(value, variable.type)
+        }
 
-        if (variable.validate) {
+        if (variable.validate && value !== undefined) {
           const result = variable.validate(value)
           if (result !== true) {
             throw new Error(`Validation failed for ${key}: ${result}`)
@@ -171,7 +175,13 @@ export class SafenvCore {
     }
 
     for (const plugin of resolvedPlugins) {
-      await plugin.apply(context)
+      if (plugin) {
+        if (typeof (plugin as any).apply === 'function') {
+          await (plugin as any).apply(context)
+        } else if (typeof plugin === 'function') {
+          await (plugin as any)(context)
+        }
+      }
     }
   }
 }

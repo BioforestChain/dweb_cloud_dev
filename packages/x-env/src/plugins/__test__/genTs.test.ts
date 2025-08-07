@@ -1,7 +1,9 @@
-import { genTsPlugin } from '../genTs'
-import type { SafenvContext, SafenvVariable } from '../../types'
 import { resolve } from 'node:path'
 import { readFileSync, existsSync, unlinkSync } from 'node:fs'
+import { describe, it, expect, afterEach } from 'vitest'
+
+import { genTsPlugin } from '../genTs.ts'
+import type { SafenvContext, SafenvVariable } from '../../types.ts'
 
 describe('GenTsPlugin - Standard Schema', () => {
   const testOutputPath = resolve(__dirname, 'test-output.ts')

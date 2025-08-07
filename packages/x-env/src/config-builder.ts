@@ -6,7 +6,6 @@
 import type {
   SafenvConfig,
   SafenvVariable,
-  SafenvPrimitiveType,
   SafenvVariables,
   StringConstraints,
   NumberConstraints,

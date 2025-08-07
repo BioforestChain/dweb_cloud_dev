@@ -1,4 +1,3 @@
-import { resolve } from 'node:path'
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { dirname } from 'node:path'
 import type { GenTsPluginOptions } from './types.ts'
@@ -76,7 +75,7 @@ export namespace StandardSchemaV1 {
 
 function generateSchemaTypeDefinition(context: SafenvContext): string {
   const configName = context.config.name
-  const pascalCaseName = toPascalCase(configName)
+  const pascalCaseName = toPascalCase(configName || 'Config')
 
   const interfaceFields: string[] = []
   Object.entries(context.config.variables).forEach(([key, variable]) => {
@@ -107,7 +106,7 @@ function generateValidationFunction(
   options: GenTsPluginOptions
 ): string {
   const configName = context.config.name
-  const pascalCaseName = toPascalCase(configName)
+  const pascalCaseName = toPascalCase(configName || 'Config')
   const functionName = options.validatorName || `create${pascalCaseName}Schema`
 
   const validationLogic = generateValidationLogic(context.config.variables)
@@ -427,25 +426,25 @@ function generateExport(
 ): string {
   const exportMode = options.exportMode
   const configName = context.config.name
-  const pascalCaseName = toPascalCase(configName)
+  const pascalCaseName = toPascalCase(configName || 'Config')
   const functionName = options.validatorName || `create${pascalCaseName}Schema`
 
   switch (exportMode) {
     case 'process.env':
       return generateProcessEnvExport(
-        options.exportName || configName,
+        options.exportName || configName || 'Config',
         functionName
       )
     case 'process.env-static':
       return generateStaticExport(
         context,
-        options.exportName || configName,
+        options.exportName || configName || 'Config',
         functionName
       )
     case 'env-file':
       return generateEnvFileExport(
         context,
-        options.exportName || configName,
+        options.exportName || configName || 'Config',
         functionName,
         options
       )
@@ -502,7 +501,7 @@ function generateEnvFileExport(
   context: SafenvContext,
   exportName: string,
   schemaFunctionName: string,
-  options: GenTsPluginOptions
+  _options: GenTsPluginOptions
 ): string {
   const configName = context.config.name
   const envFileName = `${configName}.safenv.env`

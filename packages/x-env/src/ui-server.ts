@@ -43,8 +43,7 @@ export class UIServer {
   }
 
   private async findAvailableConfigs(): Promise<string[]> {
-    const fs = require('node:fs')
-    const path = require('node:path')
+    const fs = await import('node:fs')
 
     const configPatterns = [
       'safenv.config.ts',

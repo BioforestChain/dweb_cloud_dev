@@ -77,17 +77,25 @@ export type SafenvResolvedValue<T extends SafenvPrimitiveType> =
 
 // Custom validation function with proper typing
 // Validators receive the raw input value (string from env vars) and should validate/transform it
-export type SafenvValidator<
-  _T extends SafenvPrimitiveType = SafenvPrimitiveType,
-> = (
-  value: string | number | boolean | Record<string, unknown> | unknown[]
+export type SafenvValidator<T extends SafenvPrimitiveType> = (
+  value: T extends 'string'
+    ? string
+    : T extends 'number'
+      ? number
+      : T extends 'boolean'
+        ? boolean
+        : T extends 'array'
+          ? unknown[]
+          : T extends 'object'
+            ? Record<string, unknown>
+            : never
 ) => boolean | string
 
 // Enhanced variable definition with type safety
 export interface SafenvVariable<
   T extends SafenvPrimitiveType = SafenvPrimitiveType,
 > {
-  type: T
+  type?: T
   description?: string
   default?: SafenvDefaultValue<T>
   required?: boolean
@@ -104,6 +112,10 @@ export interface SafenvVariable<
         : T extends 'object'
           ? ObjectConstraints
           : never
+  // Legacy support for simple value definition
+  value?: SafenvDefaultValue<T>
+  env?: string
+  sensitive?: boolean
 }
 
 // Type-specific constraints
@@ -146,10 +158,10 @@ export type SafenvResolvedVariables<T extends SafenvVariables> = {
 }
 
 export interface SafenvConfig<T extends SafenvVariables = SafenvVariables> {
-  name: string
+  name?: string
   description?: string
   variables: T
-  dependencies?: string[]
+  dependencies?: string[] | DependencyConfiguration
   plugins?: (SafenvPlugin | SafenvPluginConfig)[]
   workspace?: string[]
   /**
@@ -165,6 +177,67 @@ export interface SafenvConfig<T extends SafenvVariables = SafenvVariables> {
     strict?: boolean
     coercion?: boolean
   }
+}
+
+/**
+ * 增强的依赖配置
+ */
+export interface DependencyConfiguration {
+  /** 显式依赖声明 */
+  explicit?: string[]
+  /** 条件依赖 - 基于环境或其他条件 */
+  conditional?: Record<string, ConditionalDependency>
+  /** 版本约束 */
+  versions?: Record<string, string>
+  /** 冲突解决策略 */
+  conflictResolution?: ConflictResolutionStrategy
+  /** 依赖优先级 */
+  priority?: Record<string, number>
+  /** 依赖别名 */
+  aliases?: Record<string, string>
+  /** 排除的依赖 */
+  exclude?: string[]
+  /** 依赖加载选项 */
+  loadOptions?: DependencyLoadOptions
+}
+
+/**
+ * 条件依赖配置
+ */
+export interface ConditionalDependency {
+  /** 依赖包名 */
+  packages: string[]
+  /** 条件表达式 */
+  condition: string | ((context: SafenvContext) => boolean)
+  /** 是否必需 */
+  required?: boolean
+}
+
+/**
+ * 冲突解决策略
+ */
+export type ConflictResolutionStrategy =
+  | 'strict' // 严格模式，有冲突就报错
+  | 'warn' // 警告模式，显示警告但继续
+  | 'ignore' // 忽略冲突
+  | 'latest' // 使用最新版本
+  | 'priority' // 基于优先级解决
+  | 'manual' // 手动解决
+
+/**
+ * 依赖加载选项
+ */
+export interface DependencyLoadOptions {
+  /** 是否并行加载 */
+  parallel?: boolean
+  /** 加载超时时间（毫秒） */
+  timeout?: number
+  /** 重试次数 */
+  retries?: number
+  /** 是否缓存依赖 */
+  cache?: boolean
+  /** 缓存过期时间（毫秒） */
+  cacheTimeout?: number
 }
 
 export interface SafenvContext<T extends SafenvVariables = SafenvVariables> {

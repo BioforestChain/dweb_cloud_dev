@@ -1,4 +1,4 @@
-import { defineConfig } from '../../../../src/config-builder.ts'
+import { defineConfig } from '@dweb-cloud/safenv'
 
 export default defineConfig({
   name: 'web-app',

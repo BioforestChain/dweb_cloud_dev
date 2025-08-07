@@ -1,0 +1,30 @@
+{
+  "variables": {
+    "NODE_ENV": {
+      "value": "demo"
+    },
+    "PORT": {
+      "env": "PORT",
+      "default": "3000",
+      "type": "number"
+    },
+    "DATABASE_URL": {
+      "env": "DATABASE_URL",
+      "default": "postgresql://localhost:5432/demo",
+      "validate": {
+        "pattern": "^postgresql://.+"
+      }
+    },
+    "API_SECRET": {
+      "env": "API_SECRET",
+      "default": "demo-secret-key",
+      "sensitive": true
+    },
+    "FEATURE_FLAGS": {
+      "value": "feature1,feature2,feature3",
+      "type": "array"
+    }
+  },
+  "plugins": [],
+  "dependencies": []
+}

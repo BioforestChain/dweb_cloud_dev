@@ -40,11 +40,15 @@
   "license": "MIT",
   "dependencies": {
     "@iarna/toml": "^2.2.5",
+    "chalk": "^5.5.0",
     "chokidar": "^3.5.3",
     "commander": "^12.0.0",
+    "inquirer": "^12.9.0",
     "js-yaml": "^4.1.0",
     "json5": "^2.2.3",
     "jsonc-parser": "^3.2.0",
+    "ora": "^8.2.0",
+    "table": "^6.9.0",
     "unconfig": "^7.3.2"
   },
   "devDependencies": {

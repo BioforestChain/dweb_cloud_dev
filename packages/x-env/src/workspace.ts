@@ -60,7 +60,10 @@ export class SafenvWorkspace {
     for (const config of configs) {
       const safenv = new SafenvCore({
         ...this.options,
-        configFile: resolve(dirname(config.name), 'safenv.config'),
+        configFile: resolve(
+          dirname(config.name || 'safenv.config'),
+          'safenv.config'
+        ),
       })
 
       await safenv.run()
