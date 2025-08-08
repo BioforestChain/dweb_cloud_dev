@@ -87,6 +87,22 @@ importers:
         specifier: ^4.0.15
         version: 4.0.15
 
+  packages/x-env/examples/comprehensive-demo:
+    dependencies:
+      auth-service:
+        specifier: file:./external-deps/auth-service
+        version: file:packages/x-env/examples/comprehensive-demo/external-deps/auth-service
+      cache-redis:
+        specifier: file:./external-deps/cache-redis
+        version: file:packages/x-env/examples/comprehensive-demo/external-deps/cache-redis
+      database-client:
+        specifier: file:./external-deps/database-client
+        version: file:packages/x-env/examples/comprehensive-demo/external-deps/database-client
+    devDependencies:
+      '@dweb-cloud/safenv':
+        specifier: workspace:*
+        version: link:../..
+
 packages:
   '@ark/schema@0.46.0':
     resolution:
@@ -1252,6 +1268,13 @@ packages:
       }
     engines: { node: '>=8' }
 
+  auth-service@file:packages/x-env/examples/comprehensive-demo/external-deps/auth-service:
+    resolution:
+      {
+        directory: packages/x-env/examples/comprehensive-demo/external-deps/auth-service,
+        type: directory,
+      }
+
   binary-extensions@2.3.0:
     resolution:
       {
@@ -1278,6 +1301,13 @@ packages:
         integrity: sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ==,
       }
     engines: { node: '>=8' }
+
+  cache-redis@file:packages/x-env/examples/comprehensive-demo/external-deps/cache-redis:
+    resolution:
+      {
+        directory: packages/x-env/examples/comprehensive-demo/external-deps/cache-redis,
+        type: directory,
+      }
 
   callsites@3.1.0:
     resolution:
@@ -1464,6 +1494,13 @@ packages:
         integrity: sha512-wAV9QHOsNbwnWdNW2FYvE1P56wtgSbM+3SZcdGiWQILwVjACCXDCI3Ai8QlCjMDB8YK5zySiXZYBiwGmNY3lnw==,
       }
     engines: { node: '>=12' }
+
+  database-client@file:packages/x-env/examples/comprehensive-demo/external-deps/database-client:
+    resolution:
+      {
+        directory: packages/x-env/examples/comprehensive-demo/external-deps/database-client,
+        type: directory,
+      }
 
   debug@4.4.1:
     resolution:
@@ -3518,6 +3555,9 @@ snapshots:
 
   astral-regex@2.0.0: {}
 
+  auth-service@file:packages/x-env/examples/comprehensive-demo/external-deps/auth-service:
+    {}
+
   binary-extensions@2.3.0: {}
 
   birpc@2.5.0: {}
@@ -3527,6 +3567,9 @@ snapshots:
       fill-range: 7.1.1
 
   cac@6.7.14: {}
+
+  cache-redis@file:packages/x-env/examples/comprehensive-demo/external-deps/cache-redis:
+    {}
 
   callsites@3.1.0: {}
 
@@ -3640,6 +3683,9 @@ snapshots:
       which: 2.0.2
 
   dargs@8.1.0: {}
+
+  database-client@file:packages/x-env/examples/comprehensive-demo/external-deps/database-client:
+    {}
 
   debug@4.4.1:
     dependencies:

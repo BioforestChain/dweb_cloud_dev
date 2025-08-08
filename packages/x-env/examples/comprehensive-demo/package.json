@@ -3,20 +3,16 @@
   "version": "1.0.0",
   "description": "Comprehensive demo for X-Env monorepo and external dependency safenv.config resolution",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
   "dependencies": {
     "auth-service": "file:./external-deps/auth-service",
     "database-client": "file:./external-deps/database-client",
     "cache-redis": "file:./external-deps/cache-redis"
   },
   "devDependencies": {
-    "x-env": "workspace:*"
+    "@dweb-cloud/safenv": "workspace:*"
   },
   "scripts": {
     "demo": "node demo-script.js",
-    "analyze": "node -e \"const { NpmSafenvResolver } = require('../../src/npm-safenv-resolver.ts'); const resolver = new NpmSafenvResolver('.'); resolver.getAllDependencyVariables().then(vars => console.log(JSON.stringify(vars, null, 2)));\"",
-    "visualize": "node ../../src/cli/visualizer-server.js"
+    "visualize": "pnpm exec safenv ui"
   }
 }

@@ -11,6 +11,7 @@ export { SafenvServer } from './server.ts'
 export { SafenvBuilder } from './builder.ts'
 export { SafenvWorkspace } from './workspace.ts'
 export { UIServer } from './ui-server.ts'
+export { NpmSafenvResolver } from './npm-safenv-resolver.ts'
 export * from './plugins/index.ts'
 export * from './adapters.ts'
 
