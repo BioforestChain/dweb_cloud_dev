@@ -7,7 +7,12 @@ import type {
   ConflictResolutionStrategy,
   DependencyLoadOptions,
 } from './types.ts'
-import { DependencyResolver, DependencyConfig } from './dependency-resolver.ts'
+import { DependencyResolver } from './dependency-resolver.ts'
+import type { DependencyConfig } from './dependency-resolver.ts'
+import {
+  SmartPrefixManager,
+  type VariableConflict,
+} from './smart-prefix-manager.ts'
 
 /**
  * 依赖冲突信息
@@ -56,6 +61,12 @@ interface CacheEntry {
 export class EnhancedDependencyResolver extends DependencyResolver {
   private cache = new Map<string, CacheEntry>()
   private loadPromises = new Map<string, Promise<DependencyConfig | null>>()
+  private prefixManager: SmartPrefixManager
+
+  constructor(root?: string) {
+    super(root)
+    this.prefixManager = new SmartPrefixManager() // 使用默认配置
+  }
 
   /**
    * 解析增强的依赖配置
@@ -68,6 +79,16 @@ export class EnhancedDependencyResolver extends DependencyResolver {
     let loadTime = 0
     let cacheHits = 0
     let cacheMisses = 0
+
+    // 初始化prefix管理器
+    if (
+      config.dependencies &&
+      typeof config.dependencies === 'object' &&
+      'prefixStrategy' in config.dependencies
+    ) {
+      const depConfig = config.dependencies as DependencyConfiguration
+      this.prefixManager = new SmartPrefixManager(depConfig.prefixStrategy)
+    }
 
     const result: DependencyResolutionResult = {
       resolved: [],
@@ -253,7 +274,7 @@ export class EnhancedDependencyResolver extends DependencyResolver {
 
     // 支持 mode 条件
     if (condition.startsWith('mode=')) {
-      const expectedMode = condition.substring(5)
+      const _expectedMode = condition.substring(5)
       return true // 移除 mode 检查，简化逻辑
     }
 
@@ -601,6 +622,106 @@ export class EnhancedDependencyResolver extends DependencyResolver {
     }
 
     return warnings
+  }
+
+  /**
+   * 使用智能prefix策略合并依赖变量
+   * 重写基类方法以支持新的prefix策略
+   */
+  mergeDependencyVariables(
+    mainConfig: SafenvConfig,
+    dependencyGraph: DependencyResolutionResult
+  ): SafenvConfig {
+    const mergedVariables = { ...mainConfig.variables }
+    const existingVariables = new Set(Object.keys(mergedVariables))
+    const allConflicts: VariableConflict[] = []
+
+    console.log(
+      `🔧 Merging ${dependencyGraph.resolved.length} dependencies with smart prefix strategy...`
+    )
+
+    for (const dep of dependencyGraph.resolved) {
+      if (!dep.config.variables) continue
+
+      console.log(`  📦 Processing ${dep.packageName}...`)
+
+      // 应用prefix策略
+      const { prefixedVariables, results, conflicts } =
+        this.prefixManager.applyPrefixStrategy(
+          dep.config.variables,
+          dep.packageName,
+          existingVariables
+        )
+
+      // 记录处理结果
+      results.forEach(result => {
+        if (result.strategy !== 'none' && result.prefix) {
+          console.log(
+            `    ${result.originalName} → ${result.finalName} [${result.strategy}]`
+          )
+        } else {
+          console.log(
+            `    ${result.originalName} (no prefix) [${result.strategy}]`
+          )
+        }
+      })
+
+      // 合并变量
+      Object.assign(mergedVariables, prefixedVariables)
+
+      // 收集冲突
+      allConflicts.push(...conflicts)
+
+      // 更新已存在变量集合
+      Object.keys(prefixedVariables).forEach(name =>
+        existingVariables.add(name)
+      )
+    }
+
+    // 报告冲突
+    if (allConflicts.length > 0) {
+      console.warn(
+        `⚠️  Found ${allConflicts.length} variable naming conflicts:`
+      )
+      allConflicts.forEach(conflict => {
+        console.warn(
+          `  - ${conflict.variableName}: ${conflict.sources.join(' vs ')} (${conflict.severity})`
+        )
+        if (conflict.suggestion) {
+          console.warn(`    💡 ${conflict.suggestion}`)
+        }
+      })
+    }
+
+    console.log(
+      `✅ Merged variables: ${Object.keys(mergedVariables).length} total`
+    )
+
+    return {
+      ...mainConfig,
+      variables: mergedVariables,
+    }
+  }
+
+  /**
+   * 获取prefix管理器的当前配置
+   */
+  getPrefixConfiguration() {
+    return this.prefixManager.getConfig()
+  }
+
+  /**
+   * 获取所有变量冲突
+   */
+  getVariableConflicts(): VariableConflict[] {
+    return this.prefixManager.getConflicts()
+  }
+
+  /**
+   * 清除冲突记录
+   */
+  clearConflicts(): void {
+    this.prefixManager.clearConflicts()
   }
 
   /**

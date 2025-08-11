@@ -2,6 +2,7 @@ import { SafenvCore } from './core.ts'
 import { SafenvServer } from './server.ts'
 import { SafenvWorkspace } from './workspace.ts'
 import { SafenvBuilder } from './builder.ts'
+// import { WebUIServer } from './web-ui-server.ts'  // 暂时注释掉有问题的模块
 import type { SafenvOptions } from './types.ts'
 
 export * from './types.ts'
@@ -11,7 +12,9 @@ export { SafenvServer } from './server.ts'
 export { SafenvWorkspace } from './workspace.ts'
 export { SafenvBuilder } from './builder.ts'
 export { UIServer } from './ui-server.ts'
+// export { WebUIServer } from './web-ui-server.ts'  // 暂时注释掉有问题的模块
 export { NpmSafenvResolver } from './npm-safenv-resolver.ts'
+export { EnhancedDependencyResolver } from './enhanced-dependency-resolver.ts'
 export * from './plugins/index.ts'
 export * from './adapters.ts'
 

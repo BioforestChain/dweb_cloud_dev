@@ -9,7 +9,9 @@
  * 3. 安全和认证配置
  */
 
-import { defineConfig } from '../../../../src/index.js'
+import { defineConfig } from '../../../../src/index.ts'
+import { genFilePlugin } from '../../../../src/plugins/genFile.ts'
+import { genTsPlugin } from '../../../../src/plugins/genTs.ts'
 
 export default defineConfig({
   name: 'api_backend',
@@ -103,24 +105,19 @@ export default defineConfig({
     },
   },
 
-  // 插件配置 - 为后端项目生成特定的配置文件
+  // 插件配置 - 为后端项目生成特定的配置文件 - 使用导入的插件函数
   plugins: [
-    {
-      name: 'genFile',
-      options: {
-        formats: ['env', 'json', 'yaml'],
-        outputDir: './config',
-      },
-    },
+    genFilePlugin({
+      name: 'api_backend',
+      formats: ['env', 'json', 'yaml'],
+      outputDir: './config',
+    }),
 
-    {
-      name: 'genTs',
-      options: {
-        outputPath: './src/config',
-        validatorStyle: 'zod' as const,
-        exportMode: 'process.env' as const,
-        exportValidator: true,
-      },
-    },
+    genTsPlugin({
+      outputPath: './src/config.ts',
+      validatorStyle: 'zod' as const,
+      exportMode: 'process.env' as const,
+      exportValidator: true,
+    }),
   ],
 })

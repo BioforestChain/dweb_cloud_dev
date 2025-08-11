@@ -316,12 +316,21 @@ export class PluginManager {
    * 注册插件
    */
   register(plugin: SafenvPlugin): void {
-    // 检查插件名称唯一性
-    if (this.plugins.some(p => p.name === plugin.name)) {
-      throw new Error(`Plugin with name "${plugin.name}" already registered`)
+    // 为同名插件生成唯一标识符
+    const existingCount = this.plugins.filter(
+      p => p.name === plugin.name
+    ).length
+    const uniqueId =
+      existingCount > 0 ? `${plugin.name}_${existingCount}` : plugin.name
+
+    // 创建带有唯一标识的插件副本
+    const uniquePlugin = {
+      ...plugin,
+      uniqueId,
+      originalName: plugin.name,
     }
 
-    this.plugins.push(plugin)
+    this.plugins.push(uniquePlugin as SafenvPlugin)
   }
 
   /**

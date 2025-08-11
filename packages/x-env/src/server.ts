@@ -5,6 +5,11 @@ import type { SafenvOptions } from './types.ts'
 export class SafenvServer extends SafenvCore {
   private watcher: any = null
 
+  // 访问父类的 pluginManager
+  protected get pluginManager() {
+    return (this as any).pluginManager
+  }
+
   constructor(options: SafenvOptions = {}) {
     super({ ...options })
   }
@@ -13,9 +18,7 @@ export class SafenvServer extends SafenvCore {
     await this.run()
 
     // 服务器模式默认启用监听
-    if (true) {
-      this.startWatching()
-    }
+    this.startWatching()
   }
 
   private startWatching(): void {
@@ -27,12 +30,31 @@ export class SafenvServer extends SafenvCore {
     })
 
     this.watcher.on('change', async (path: string) => {
-      console.log(`Config changed: ${path}`)
+      console.log(`📁 Config changed: ${path}`)
+
       try {
+        // 触发文件变化生命周期钩子
+        if (this.pluginManager) {
+          await this.pluginManager.executePhase(
+            'onFileChange' as any,
+            {} as any,
+            [path]
+          )
+        }
+
         await this.run()
-        console.log('Safenv updated successfully')
+        console.log('✅ Safenv updated successfully')
       } catch (error) {
-        console.error('Error updating safenv:', error)
+        console.error('❌ Error updating safenv:', error)
+
+        // 触发错误处理钩子
+        if (this.pluginManager && error instanceof Error) {
+          const safenvError = error as any
+          safenvError.phase = 'onFileChange'
+          await this.pluginManager
+            .executePhase('onError', {} as any, safenvError)
+            .catch(() => {})
+        }
       }
     })
 

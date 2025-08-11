@@ -10,8 +10,9 @@
  * 4. 变量继承和依赖管理
  */
 
-import { defineConfig } from '../../src/index.js'
-import { genTsPlugin } from '../../src/plugins/genTs.js'
+import { defineConfig } from '../../src/index.ts'
+import { genTsPlugin } from '../../src/plugins/genTs.ts'
+import { genFilePlugin } from '../../src/plugins/genFile.ts'
 
 export default defineConfig({
   // 项目基础信息
@@ -92,20 +93,18 @@ export default defineConfig({
     },
   },
 
-  // 插件配置 - 测试 genFile 和 genTs 插件
+  // 插件配置 - 测试 genFile 和 genTs 插件 - 使用导入的插件函数
   plugins: [
     // genFile 插件 - 生成多种格式的环境变量文件
-    {
-      name: 'genFile',
-      options: {
-        formats: ['env', 'json', 'yaml'],
-        outputDir: './generated',
-      },
-    },
+    genFilePlugin({
+      name: 'comprehensive_workspace',
+      formats: ['env', 'json', 'yaml'],
+      outputDir: './generated',
+    }),
 
     // genTs 插件 - 生成 TypeScript 类型定义和验证
     genTsPlugin({
-      outputPath: './types',
+      outputPath: './types/config.ts',
       validatorStyle: 'zod',
       exportMode: 'process.env' as const,
       exportValidator: true,

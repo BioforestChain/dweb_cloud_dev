@@ -9,7 +9,9 @@
  * 3. 依赖其他子项目的变量
  */
 
-import { defineConfig } from '../../../../src/index.js'
+import { defineConfig } from '../../../../src/index.ts'
+import { genFilePlugin } from '../../../../src/plugins/genFile.ts'
+import { genTsPlugin } from '../../../../src/plugins/genTs.ts'
 
 export default defineConfig({
   name: 'web_frontend',
@@ -76,24 +78,19 @@ export default defineConfig({
     },
   },
 
-  // 插件配置 - 为前端项目生成特定的配置文件
+  // 插件配置 - 为前端项目生成特定的配置文件 - 使用导入的插件函数
   plugins: [
-    {
-      name: 'genFile',
-      options: {
-        formats: ['env', 'json'],
-        outputDir: './config',
-      },
-    },
+    genFilePlugin({
+      name: 'web_frontend',
+      formats: ['env', 'json'],
+      outputDir: './config',
+    }),
 
-    {
-      name: 'genTs',
-      options: {
-        outputPath: './src/config',
-        validatorStyle: 'zod' as const,
-        exportMode: 'process.env' as const,
-        exportValidator: true,
-      },
-    },
+    genTsPlugin({
+      outputPath: './src/config.ts',
+      validatorStyle: 'zod' as const,
+      exportMode: 'process.env' as const,
+      exportValidator: true,
+    }),
   ],
 })

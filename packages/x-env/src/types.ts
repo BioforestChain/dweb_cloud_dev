@@ -180,6 +180,37 @@ export interface SafenvConfig<T extends SafenvVariables = SafenvVariables> {
 }
 
 /**
+ * Prefix策略类型
+ */
+export type PrefixStrategy = 'auto' | 'custom' | 'none' | 'global-aware'
+
+/**
+ * 智能prefix配置
+ */
+export interface PrefixConfiguration {
+  /** 默认prefix策略 */
+  defaultStrategy?: PrefixStrategy
+
+  /** 全局变量列表（不加prefix） */
+  globalVariables?: string[]
+
+  /** 自动prefix的依赖（基于包名生成prefix） */
+  autoPrefixed?: string[]
+
+  /** 自定义prefix映射 */
+  customPrefixes?: Record<string, string>
+
+  /** 不加prefix的依赖（风险自负） */
+  noPrefixRisky?: string[]
+
+  /** 是否启用冲突检测和警告 */
+  conflictWarning?: boolean
+
+  /** prefix分隔符，默认为'_' */
+  separator?: string
+}
+
+/**
  * 增强的依赖配置
  */
 export interface DependencyConfiguration {
@@ -197,6 +228,8 @@ export interface DependencyConfiguration {
   aliases?: Record<string, string>
   /** 排除的依赖 */
   exclude?: string[]
+  /** Prefix策略配置 */
+  prefixStrategy?: PrefixConfiguration
   /** 依赖加载选项 */
   loadOptions?: DependencyLoadOptions
 }

@@ -13,7 +13,7 @@ export default defineConfig({
   shims: true,
   treeshake: true,
   // 确保 CLI 文件保持可执行权限
-  outputOptions: (options, format) => {
+  outputOptions: (options, _format) => {
     if (options.file?.includes('cli')) {
       return {
         banner: '#!/usr/bin/env node',

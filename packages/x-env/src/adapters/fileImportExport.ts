@@ -5,6 +5,7 @@ import type {
 } from './types.ts'
 
 // Type definitions for File System Access API
+// These are used for type safety with globalThis casting
 interface FileSystemFileHandle {
   getFile(): Promise<File>
   createWritable(): Promise<FileSystemWritableFileStream>
@@ -30,15 +31,7 @@ interface ShowSaveFilePickerOptions {
   }>
 }
 
-// File System Access API types for globalThis
-interface FileSystemAccessWindow {
-  showOpenFilePicker(
-    options?: ShowOpenFilePickerOptions
-  ): Promise<FileSystemFileHandle[]>
-  showSaveFilePicker(
-    options?: ShowSaveFilePickerOptions
-  ): Promise<FileSystemFileHandle>
-}
+// File System Access API types are now part of the DOM spec
 
 /**
  * File Import/Export Adapter for html-tools mode

@@ -93,7 +93,7 @@ export class VisualizerServer {
 
       res.writeHead(200, { 'Content-Type': 'text/html' })
       res.end(html)
-    } catch (error) {
+    } catch {
       // 如果文件不存在，提供内联 HTML
       const inlineHTML = this.getInlineHTML()
       res.writeHead(200, { 'Content-Type': 'text/html' })
@@ -393,7 +393,7 @@ export async function startVisualizerCommand(
           spawn('xdg-open', [url])
         }
         console.log(`🌐 Opening ${url} in your default browser...`)
-      } catch (error) {
+      } catch {
         console.log(`🌐 Please open ${url} in your browser`)
       }
     }

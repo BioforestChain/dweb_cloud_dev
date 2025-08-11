@@ -3,7 +3,6 @@
 import { program } from 'commander'
 import {
   createSafenv,
-  SafenvCore,
   SafenvServer,
   SafenvWorkspace,
   SafenvBuilder,

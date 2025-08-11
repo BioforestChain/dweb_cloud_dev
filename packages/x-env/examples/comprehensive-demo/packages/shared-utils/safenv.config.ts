@@ -9,7 +9,9 @@
  * 3. 工具库特有的配置
  */
 
-import { defineConfig } from '../../../../src/index.js'
+import { defineConfig } from '../../../../src/index.ts'
+import { genFilePlugin } from '../../../../src/plugins/genFile.ts'
+import { genTsPlugin } from '../../../../src/plugins/genTs.ts'
 
 export default defineConfig({
   name: 'shared_utils',
@@ -89,24 +91,19 @@ export default defineConfig({
     },
   },
 
-  // 插件配置 - 为共享工具库生成配置文件
+  // 插件配置 - 为共享工具库生成配置文件 - 使用导入的插件函数
   plugins: [
-    {
-      name: 'genFile',
-      options: {
-        formats: ['env', 'json'],
-        outputDir: './config',
-      },
-    },
+    genFilePlugin({
+      name: 'shared_utils',
+      formats: ['env', 'json'],
+      outputDir: './config',
+    }),
 
-    {
-      name: 'genTs',
-      options: {
-        outputPath: './src/config',
-        validatorStyle: 'zod' as const,
-        exportMode: 'process.env' as const,
-        exportValidator: true,
-      },
-    },
+    genTsPlugin({
+      outputPath: './src/config.ts',
+      validatorStyle: 'zod' as const,
+      exportMode: 'process.env' as const,
+      exportValidator: true,
+    }),
   ],
 })

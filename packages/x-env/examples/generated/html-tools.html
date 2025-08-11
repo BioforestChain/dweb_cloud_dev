@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Safenv Tools - comprehensive_test_workspace</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .variable { margin: 10px 0; padding: 10px; border: 1px solid #eee; border-radius: 4px; }
+        input[type="text"], textarea { width: 100%; padding: 8px; margin: 4px 0; box-sizing: border-box; }
+        button { padding: 10px 20px; margin: 8px 4px; background: #007cba; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #005a87; }
+        .description { color: #666; font-size: 0.9em; margin: 4px 0; }
+        .file-ops { display: flex; gap: 10px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <h1>Safenv Configuration Tools</h1>
+    <h2>Project: comprehensive_test_workspace</h2>
+    
+    <div class="section">
+        <h3>Environment Variables</h3>
+        <div id="variables"></div>
+    </div>
+    
+    <div class="section">
+        <h3>File Operations</h3>
+        <div class="file-ops">
+            <button onclick="importConfig('env')">Import .env</button>
+            <button onclick="importConfig('json')">Import JSON</button>
+            <button onclick="importConfig('yaml')">Import YAML</button>
+            <button onclick="importConfig('toml')">Import TOML</button>
+            <button onclick="exportConfig('env')">Export .env</button>
+            <button onclick="exportConfig('json')">Export JSON</button>
+            <button onclick="exportConfig('yaml')">Export YAML</button>
+            <button onclick="exportConfig('toml')">Export TOML</button>
+        </div>
+    </div>
+
+    <script>
+        const config = {
+  "name": "comprehensive_test_workspace",
+  "variables": {
+    "WORKSPACE_NAME": {
+      "type": "string",
+      "default": "comprehensive_test_workspace",
+      "description": "工作空间名称",
+      "required": true
+    },
+    "WORKSPACE_VERSION": {
+      "type": "string",
+      "default": "1.0.0",
+      "description": "工作空间版本号"
+    },
+    "NODE_ENV": {
+      "type": "string",
+      "default": "development",
+      "description": "运行环境 (development/production/test)",
+      "required": true
+    },
+    "SERVER_HOST": {
+      "type": "string",
+      "default": "localhost",
+      "description": "服务器主机地址"
+    },
+    "SERVER_PORT": {
+      "type": "number",
+      "default": 3000,
+      "description": "服务器端口号"
+    },
+    "DATABASE_URL": {
+      "type": "string",
+      "default": "postgresql://localhost:5432/safenv_test",
+      "description": "主数据库连接字符串",
+      "sensitive": true,
+      "required": true
+    },
+    "DATABASE_POOL_MIN": {
+      "type": "number",
+      "default": 2,
+      "description": "数据库连接池最小连接数"
+    },
+    "DATABASE_POOL_MAX": {
+      "type": "number",
+      "default": 20,
+      "description": "数据库连接池最大连接数"
+    },
+    "REDIS_URL": {
+      "type": "string",
+      "default": "redis://localhost:6379/0",
+      "description": "Redis连接字符串"
+    },
+    "CACHE_DEFAULT_TTL": {
+      "type": "number",
+      "default": 3600,
+      "description": "默认缓存过期时间（秒）"
+    },
+    "API_BASE_URL": {
+      "type": "string",
+      "default": "https://api.example.com/v1",
+      "description": "外部API基础URL"
+    },
+    "API_KEY": {
+      "type": "string",
+      "default": "test-api-key-replace-in-production",
+      "description": "外部API密钥",
+      "sensitive": true,
+      "required": true
+    },
+    "API_TIMEOUT": {
+      "type": "number",
+      "default": 10000,
+      "description": "API请求超时时间（毫秒）"
+    },
+    "API_RETRY_COUNT": {
+      "type": "number",
+      "default": 3,
+      "description": "API请求重试次数"
+    },
+    "JWT_SECRET": {
+      "type": "string",
+      "default": "super-secret-jwt-key-change-in-production",
+      "description": "JWT签名密钥",
+      "sensitive": true,
+      "required": true
+    },
+    "JWT_EXPIRES_IN": {
+      "type": "string",
+      "default": "24h",
+      "description": "JWT过期时间"
+    },
+    "BCRYPT_ROUNDS": {
+      "type": "number",
+      "default": 12,
+      "description": "BCrypt加密轮数"
+    },
+    "ENABLE_LOGGING": {
+      "type": "boolean",
+      "default": true,
+      "description": "是否启用日志记录"
+    },
+    "ENABLE_METRICS": {
+      "type": "boolean",
+      "default": false,
+      "description": "是否启用指标收集"
+    },
+    "ENABLE_TRACING": {
+      "type": "boolean",
+      "default": false,
+      "description": "是否启用链路追踪"
+    },
+    "DEBUG_MODE": {
+      "type": "boolean",
+      "default": false,
+      "description": "是否启用调试模式"
+    },
+    "FEATURE_FLAGS": {
+      "type": "array",
+      "default": [
+        "basic_auth",
+        "rate_limiting"
+      ],
+      "description": "启用的功能标志列表"
+    },
+    "LOG_LEVEL": {
+      "type": "string",
+      "default": "info",
+      "description": "日志级别 (debug/info/warn/error)"
+    },
+    "LOG_FORMAT": {
+      "type": "string",
+      "default": "json",
+      "description": "日志格式 (json/text)"
+    },
+    "LOG_MAX_FILES": {
+      "type": "number",
+      "default": 10,
+      "description": "日志文件最大保留数量"
+    },
+    "METRICS_PORT": {
+      "type": "number",
+      "default": 9090,
+      "description": "监控指标端口"
+    },
+    "HEALTH_CHECK_PATH": {
+      "type": "string",
+      "default": "/health",
+      "description": "健康检查路径"
+    },
+    "CORS_ORIGINS": {
+      "type": "array",
+      "default": [
+        "http://localhost:3000",
+        "http://localhost:3001"
+      ],
+      "description": "CORS允许的源列表"
+    },
+    "CORS_METHODS": {
+      "type": "array",
+      "default": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "OPTIONS"
+      ],
+      "description": "CORS允许的HTTP方法"
+    },
+    "RATE_LIMIT_WINDOW": {
+      "type": "number",
+      "default": 900000,
+      "description": "速率限制窗口时间（毫秒）"
+    },
+    "RATE_LIMIT_MAX": {
+      "type": "number",
+      "default": 100,
+      "description": "速率限制最大请求数"
+    },
+    "UPLOAD_MAX_SIZE": {
+      "type": "number",
+      "default": 52428800,
+      "description": "文件上传最大大小（字节）50MB"
+    },
+    "UPLOAD_ALLOWED_TYPES": {
+      "type": "array",
+      "default": [
+        "image/jpeg",
+        "image/png",
+        "application/pdf"
+      ],
+      "description": "允许上传的文件类型"
+    },
+    "SMTP_HOST": {
+      "type": "string",
+      "default": "smtp.example.com",
+      "description": "SMTP服务器地址"
+    },
+    "SMTP_PORT": {
+      "type": "number",
+      "default": 587,
+      "description": "SMTP服务器端口"
+    },
+    "SMTP_USER": {
+      "type": "string",
+      "default": "no-reply@example.com",
+      "description": "SMTP用户名"
+    },
+    "SMTP_PASS": {
+      "type": "string",
+      "default": "smtp-password",
+      "description": "SMTP密码",
+      "sensitive": true
+    },
+    "AWS_REGION": {
+      "type": "string",
+      "default": "us-east-1",
+      "description": "AWS区域"
+    },
+    "AWS_ACCESS_KEY_ID": {
+      "type": "string",
+      "default": "AKIA...",
+      "description": "AWS访问密钥ID",
+      "sensitive": true
+    },
+    "AWS_SECRET_ACCESS_KEY": {
+      "type": "string",
+      "default": "secret-key",
+      "description": "AWS私有访问密钥",
+      "sensitive": true
+    },
+    "S3_BUCKET_NAME": {
+      "type": "string",
+      "default": "safenv-test-bucket",
+      "description": "S3存储桶名称"
+    },
+    "APP_CONFIG": {
+      "type": "object",
+      "default": {
+        "theme": "light",
+        "language": "zh-CN",
+        "timezone": "Asia/Shanghai",
+        "currency": "CNY",
+        "dateFormat": "YYYY-MM-DD",
+        "timeFormat": "HH:mm:ss"
+      },
+      "description": "应用全局配置对象"
+    },
+    "EXPERIMENTAL_FEATURES": {
+      "type": "object",
+      "default": {
+        "newUI": false,
+        "enhancedSecurity": true,
+        "betaAPI": false
+      },
+      "description": "实验性功能开关"
+    }
+  },
+  "plugins": [
+    {
+      "name": "genTsPlugin",
+      "tags": [
+        "typescript",
+        "generator"
+      ]
+    },
+    {
+      "name": "genTsPlugin",
+      "tags": [
+        "typescript",
+        "generator"
+      ]
+    },
+    {
+      "name": "genTsPlugin",
+      "tags": [
+        "typescript",
+        "generator"
+      ]
+    },
+    {
+      "name": "genTsPlugin",
+      "tags": [
+        "typescript",
+        "generator"
+      ]
+    },
+    {
+      "name": "genTsPlugin",
+      "tags": [
+        "typescript",
+        "generator"
+      ]
+    },
+    {
+      "name": "genTsPlugin",
+      "tags": [
+        "typescript",
+        "generator"
+      ]
+    },
+    {
+      "name": "genTsPlugin",
+      "tags": [
+        "typescript",
+        "generator"
+      ]
+    },
+    {
+      "name": "genFilePlugin"
+    }
+  ],
+  "description": "SafEnv 全功能测试工作空间 - 演示所有核心功能",
+  "root": "/Users/kingsword09/aispace/dweb_cloud_dev/packages/x-env/examples",
+  "workspace": true,
+  "dependencies": {
+    "explicit": [
+      "@company/shared-config",
+      "@company/auth-config",
+      "../shared/database.safenv.config",
+      "./configs/base.json",
+      "workspace:common-config",
+      "workspace:auth-service"
+    ],
+    "conditional": {
+      "development": {
+        "packages": [
+          "workspace:dev-tools",
+          "../dev/debug.safenv.config"
+        ],
+        "condition": "NODE_ENV=development",
+        "required": false
+      },
+      "production": {
+        "packages": [
+          "@company/prod-monitoring",
+          "workspace:prod-security"
+        ],
+        "required": true
+      },
+      "testing": {
+        "packages": [
+          "workspace:test-utils",
+          "../test/fixtures.config.json"
+        ],
+        "condition": "NODE_ENV=test",
+        "required": false
+      }
+    },
+    "versions": {
+      "@company/shared-config": "^2.1.0",
+      "@company/auth-config": "~1.5.0"
+    },
+    "conflictResolution": "priority",
+    "priority": {
+      "@company/shared-config": 100,
+      "@company/auth-config": 90,
+      "workspace:common-config": 80,
+      "../shared/database.safenv.config": 70,
+      "./configs/base.json": 60
+    },
+    "aliases": {
+      "shared": "@company/shared-config",
+      "auth": "@company/auth-config",
+      "common": "workspace:common-config"
+    },
+    "exclude": [
+      "old-deprecated-package",
+      "legacy-config"
+    ],
+    "loadOptions": {
+      "parallel": true,
+      "timeout": 30000,
+      "retries": 3,
+      "cache": true,
+      "cacheTimeout": 300000
+    }
+  },
+  "autoDependencies": true
+};
+        const resolvedVariables = {
+  "WORKSPACE_NAME": "test-workspace",
+  "WORKSPACE_VERSION": "1.0.0",
+  "NODE_ENV": "test",
+  "SERVER_HOST": "localhost",
+  "SERVER_PORT": 3000,
+  "DATABASE_URL": "postgresql://localhost:5432/safenv_test",
+  "DATABASE_POOL_MIN": 2,
+  "DATABASE_POOL_MAX": 20,
+  "REDIS_URL": "redis://localhost:6379/0",
+  "CACHE_DEFAULT_TTL": 3600,
+  "API_BASE_URL": "https://api.example.com/v1",
+  "API_KEY": "test-api-key-replace-in-production",
+  "API_TIMEOUT": 10000,
+  "API_RETRY_COUNT": 3,
+  "JWT_SECRET": "super-secret-jwt-key-change-in-production",
+  "JWT_EXPIRES_IN": "24h",
+  "BCRYPT_ROUNDS": 12,
+  "ENABLE_LOGGING": true,
+  "ENABLE_METRICS": false,
+  "ENABLE_TRACING": false,
+  "DEBUG_MODE": false,
+  "FEATURE_FLAGS": [
+    "basic_auth",
+    "rate_limiting"
+  ],
+  "LOG_LEVEL": "info",
+  "LOG_FORMAT": "json",
+  "LOG_MAX_FILES": 10,
+  "METRICS_PORT": 9090,
+  "HEALTH_CHECK_PATH": "/health",
+  "CORS_ORIGINS": [
+    "http://localhost:3000",
+    "http://localhost:3001"
+  ],
+  "CORS_METHODS": [
+    "GET",
+    "POST",
+    "PUT",
+    "DELETE",
+    "OPTIONS"
+  ],
+  "RATE_LIMIT_WINDOW": 900000,
+  "RATE_LIMIT_MAX": 100,
+  "UPLOAD_MAX_SIZE": 52428800,
+  "UPLOAD_ALLOWED_TYPES": [
+    "image/jpeg",
+    "image/png",
+    "application/pdf"
+  ],
+  "SMTP_HOST": "smtp.example.com",
+  "SMTP_PORT": 587,
+  "SMTP_USER": "no-reply@example.com",
+  "SMTP_PASS": "smtp-password",
+  "AWS_REGION": "us-east-1",
+  "AWS_ACCESS_KEY_ID": "AKIA...",
+  "AWS_SECRET_ACCESS_KEY": "secret-key",
+  "S3_BUCKET_NAME": "safenv-test-bucket",
+  "APP_CONFIG": {
+    "theme": "light",
+    "language": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "currency": "CNY",
+    "dateFormat": "YYYY-MM-DD",
+    "timeFormat": "HH:mm:ss"
+  },
+  "EXPERIMENTAL_FEATURES": {
+    "newUI": false,
+    "enhancedSecurity": true,
+    "betaAPI": false
+  }
+};
+        
+        function renderVariables() {
+            const container = document.getElementById('variables');
+            container.innerHTML = '';
+            
+            Object.entries(config.variables).forEach(([key, variable]) => {
+                const div = document.createElement('div');
+                div.className = 'variable';
+                
+                const currentValue = resolvedVariables[key] || variable.default || '';
+                
+                div.innerHTML = `
+                    <label><strong>${key}</strong></label>
+                    ${variable.description ? `<div class="description">${variable.description}</div>` : ''}
+                    <input type="text" id="var_${key}" value="${String(currentValue)}" />
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+        
+        function getCurrentVariables() {
+            const variables = {};
+            Object.keys(config.variables).forEach(key => {
+                const input = document.getElementById('var_' + key);
+                if (input) {
+                    variables[key] = input.value;
+                }
+            });
+            return variables;
+        }
+        
+        async function importConfig(format) {
+            try {
+                const [fileHandle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: `${format.toUpperCase()} files`,
+                        accept: { 'text/plain': ['.env', '.json', '.yaml', '.yml', '.toml'] }
+                    }]
+                });
+                
+                const file = await fileHandle.getFile();
+                const content = await file.text();
+                
+                let variables = {};
+                
+                switch (format) {
+                    case 'env':
+                        variables = parseEnvFile(content);
+                        break;
+                    case 'json':
+                        variables = JSON.parse(content);
+                        break;
+                    case 'yaml':
+                        // Simple YAML parsing (basic implementation)
+                        content.split('\n').forEach(line => {
+                            const match = line.match(/^([^:]+):\s*(.+)$/);
+                            if (match) {
+                                const [, key, value] = match;
+                                variables[key.trim()] = value.trim().replace(/^["']|["']$/g, '');
+                            }
+                        });
+                        break;
+                    case 'toml':
+                        // Simple TOML parsing (basic implementation)
+                        content.split('\n').forEach(line => {
+                            const match = line.match(/^([^=]+)\s*=\s*(.+)$/);
+                            if (match) {
+                                const [, key, value] = match;
+                                variables[key.trim()] = value.trim().replace(/^["']|["']$/g, '');
+                            }
+                        });
+                        break;
+                }
+                
+                // Update form fields
+                Object.entries(variables).forEach(([key, value]) => {
+                    const input = document.getElementById('var_' + key);
+                    if (input) {
+                        input.value = String(value);
+                    }
+                });
+                
+                alert('Configuration imported successfully!');
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    alert('Error importing file: ' + error.message);
+                }
+            }
+        }
+        
+        async function exportConfig(format) {
+            const variables = getCurrentVariables();
+            let content, fileName, mimeType;
+            
+            switch (format) {
+                case 'json':
+                    content = JSON.stringify(variables, null, 2);
+                    fileName = `${config.name}.safenv.json`;
+                    mimeType = 'application/json';
+                    break;
+                case 'yaml':
+                    // Simple YAML export (basic implementation)
+                    content = Object.entries(variables).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join('\n');
+                    fileName = `${config.name}.safenv.yaml`;
+                    mimeType = 'application/x-yaml';
+                    break;
+                case 'env':
+                    content = Object.entries(variables).map(([k, v]) => `${k}=${String(v).includes(' ') ? '"' + v + '"' : v}`).join('\n');
+                    fileName = `${config.name}.safenv.env`;
+                    mimeType = 'text/plain';
+                    break;
+                case 'toml':
+                    // Simple TOML export (basic implementation)
+                    content = Object.entries(variables).map(([k, v]) => `${k} = ${JSON.stringify(v)}`).join('\n');
+                    fileName = `${config.name}.safenv.toml`;
+                    mimeType = 'application/toml';
+                    break;
+            }
+            
+            try {
+                const fileHandle = await window.showSaveFilePicker({
+                    suggestedName: fileName,
+                    types: [{
+                        description: `${format.toUpperCase()} files`,
+                        accept: { [mimeType]: [fileName.substring(fileName.lastIndexOf('.'))] }
+                    }]
+                });
+                
+                const writable = await fileHandle.createWritable();
+                await writable.write(content);
+                await writable.close();
+                
+                alert('Configuration exported successfully!');
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    // Fallback to download
+                    const blob = new Blob([content], { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            }
+        }
+        
+        function parseEnvFile(content) {
+            const result = {};
+            content.split('\n').forEach(line => {
+                line = line.trim();
+                if (line && !line.startsWith('#')) {
+                    const [key, ...valueParts] = line.split('=');
+                    if (key && valueParts.length > 0) {
+                        let value = valueParts.join('=');
+                        if ((value.startsWith('"') && value.endsWith('"')) || 
+                            (value.startsWith("'") && value.endsWith("'"))) {
+                            value = value.slice(1, -1);
+                        }
+                        result[key.trim()] = value;
+                    }
+                }
+            });
+            return result;
+        }
+        
+        renderVariables();
+    </script>
+</body>
+</html>
