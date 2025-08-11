@@ -135,11 +135,8 @@ export class OptimizedCore {
       } = {
         config,
         resolvedVariables: {} as any,
-        mode:
-          process.env.NODE_ENV === 'serve' || process.env.NODE_ENV === 'build'
-            ? process.env.NODE_ENV
-            : 'build',
-        outputDir: this.options.outputDir,
+        root: process.cwd(),
+        configFile: 'safenv.config',
         variables: {},
         dependencies: [],
         configPath,

@@ -10,7 +10,7 @@ export interface UIServerOptions {
   port?: number
   host?: string
   configFile?: string
-  outputDir?: string
+  root?: string
   mode?: UIMode
 }
 
@@ -25,8 +25,7 @@ export class UIServer {
   constructor(private options: UIServerOptions = {}) {
     this.safenvCore = new SafenvCore({
       configFile: options.configFile,
-      outputDir: options.outputDir,
-      mode: 'serve',
+      root: options.root,
     })
     this.uiMode = this.determineUIMode(options.mode || 'auto')
   }
@@ -95,8 +94,8 @@ export class UIServer {
         this.context = {
           config: this.config,
           resolvedVariables,
-          mode: 'serve',
-          outputDir: resolve(this.options.outputDir || './dist'),
+          root: this.options.root || process.cwd(),
+          configFile: this.options.configFile || 'safenv.config',
         }
       } catch (error) {
         console.warn(
@@ -220,8 +219,7 @@ export class UIServer {
           // Create new SafenvCore with the new config
           this.safenvCore = new SafenvCore({
             configFile: configFile,
-            outputDir: this.options.outputDir,
-            mode: 'serve',
+            root: this.options.root,
           })
 
           // Load the new configuration
@@ -249,8 +247,8 @@ export class UIServer {
           this.context = {
             config: this.config,
             resolvedVariables,
-            mode: 'serve',
-            outputDir: resolve(this.options.outputDir || './dist'),
+            root: this.options.root || process.cwd(),
+            configFile: this.options.configFile || 'safenv.config',
           }
 
           res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -373,7 +371,7 @@ export class UIServer {
     // Update files for each GenFilePlugin
     for (const pluginConfig of genFilePlugins) {
       const options = pluginConfig.options
-      const outputDir = options.outputDir || this.context.outputDir
+      const outputDir = options.outputDir || this.context.root
 
       for (const format of options.formats) {
         const fileName = `${options.name}.safenv.${format}`

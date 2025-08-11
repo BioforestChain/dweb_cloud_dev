@@ -16,10 +16,7 @@ export class SafenvCore {
 
   constructor(options: SafenvOptions = {}) {
     this.options = {
-      mode: 'serve',
       configFile: 'safenv.config',
-      outputDir: './dist',
-      watch: true,
       ...options,
     }
     this.dependencyResolver = new DependencyResolver()
@@ -170,8 +167,8 @@ export class SafenvCore {
     const context: SafenvContext = {
       config,
       resolvedVariables,
-      mode: this.options.mode!,
-      outputDir: resolve(this.options.outputDir!),
+      configFile: this.options.configFile!,
+      root: resolve(this.options.root || process.cwd()),
     }
 
     for (const plugin of resolvedPlugins) {

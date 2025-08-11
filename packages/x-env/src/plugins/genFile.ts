@@ -14,7 +14,7 @@ export function genFilePlugin(options: GenFilePluginOptions): SafenvPlugin {
     name: 'genFilePlugin',
 
     async afterGenerate(context: SafenvContext): Promise<void> {
-      const outputDir = options.outputDir || context.outputDir
+      const outputDir = options.outputDir || context.root
       console.log(
         `genFilePlugin: Generating files in ${outputDir} with formats:`,
         options.formats
@@ -126,8 +126,7 @@ async function generateHtmlTools(
   options: GenFilePluginOptions
 ): Promise<void> {
   const outputPath =
-    options.htmlTools?.outputPath ||
-    resolve(context.outputDir, 'safenv-tools.html')
+    options.htmlTools?.outputPath || resolve(context.root, 'safenv-tools.html')
 
   const htmlContent = `<!DOCTYPE html>
 <html>

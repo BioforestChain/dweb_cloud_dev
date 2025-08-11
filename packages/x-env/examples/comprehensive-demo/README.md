@@ -47,22 +47,62 @@ _每个子目录中都包含自己的 `package.json` 和 `safenv.config.js`。_
 
 **重要提示：所有命令都应在 Monorepo 的根目录（即 `dweb_cloud_dev/` 目录）下执行。**
 
-```bash
+````bash
 # 1. 安装所有依赖
 #    在项目根目录运行，pnpm 会读取 pnpm-workspace.yaml 并处理整个 workspace 的依赖关系。
 pnpm install
 
 # 2. 构建 @dweb-cloud/safenv 包
-#    这将编译 TypeScript 源码并生成 dist 目录，是运行脚本的前提。
-pnpm --filter @dweb-cloud/safenv build
+## 🚀 Running the Examples
 
-# 3. 运行核心演示脚本
-#    使用 --filter 来指定在哪个包内运行脚本。
-pnpm --filter x-env-comprehensive-demo demo
+### 1. Main Demo Script (Simulated)
+```bash
+npm run demo
+````
 
-# 4. (可选) 启动可视化UI
-pnpm --filter x-env-comprehensive-demo visualize
+This runs the main demonstration script that simulates x-env functionality.
+
+### 2. Real API Demo - Vite/Vitest Style (New!)
+
+```bash
+npm run demo:real
 ```
+
+This runs a demonstration using the new Vite/Vitest style configuration API:
+
+- **Core Instance**: `create({ root, configFile })`
+- **Server Instance**: `create({ server: { port, host, cors } })`
+- **Builder Instance**: `create({ build: { outDir, minify, sourcemap } })`
+- **Workspace Instance**: `create({ projects: [...] })`
+
+### 3. Vite-Style Config Demo
+
+```bash
+npm run demo:vite-style
+```
+
+This demonstrates the complete Vite/Vitest style configuration patterns.
+
+# 5. (可选) 启动可视化UI
+
+pnpm --filter x-env-comprehensive-demo visualize
+
+````
+
+### 🆕 新增：真实 API 演示
+
+`real-api-demo.js` 脚本展示了新的配置驱动 API 的实际使用：
+
+- ✅ 演示 `create()` 函数的各种使用方式
+- ✅ 展示配置驱动的实例创建
+- ✅ 验证 TypeScript 类型安全
+- ✅ 符合前端工具标准（类似 Vite/Vitest）
+
+```bash
+# 直接运行真实 API 演示
+cd packages/x-env/examples/comprehensive-demo
+node real-api-demo.js
+````
 
 ## 预期结果
 

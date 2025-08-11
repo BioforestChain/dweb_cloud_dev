@@ -243,15 +243,33 @@ export interface DependencyLoadOptions {
 export interface SafenvContext<T extends SafenvVariables = SafenvVariables> {
   config: SafenvConfig<T>
   resolvedVariables: SafenvResolvedVariables<T>
-  mode: 'serve' | 'build'
-  outputDir: string
+  root: string
+  configFile: string
 }
 
+// Safenv 配置结构 - 专注于 VAL (配置、环境、变量) 管理
 export interface SafenvOptions {
-  mode?: 'serve' | 'build'
+  // 基础配置
+  root?: string
   configFile?: string
-  outputDir?: string
-  watch?: boolean
+
+  // 项目名称（用于插件输出文件命名）
+  name?: string
+
+  // 工作空间配置 - 自动发现或指定包含 safenv.config 的项目路径
+  workspace?: boolean | string[]
+
+  // VAL 定义 - Safenv 的核心：配置、环境、变量
+  variables?: SafenvVariables
+
+  // 插件配置 - 通过插件输出各种格式
+  plugins?: (SafenvPlugin | SafenvPluginConfig)[]
+
+  // 服务器配置（仅用于 web-ui 和 html-tools）
+  server?: {
+    port?: number
+    host?: string
+  }
 }
 
 // Utility types for type inference

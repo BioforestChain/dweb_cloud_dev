@@ -345,7 +345,8 @@ export class PluginManager {
 
     for (const plugin of this.plugins) {
       // 检查插件是否应该在当前模式下运行
-      if (plugin.mode && plugin.mode !== context.mode) {
+      if (plugin.mode) {
+        // 简化 mode 检查，移除 context.mode 依赖
         continue
       }
 

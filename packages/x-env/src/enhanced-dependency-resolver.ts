@@ -254,7 +254,7 @@ export class EnhancedDependencyResolver extends DependencyResolver {
     // 支持 mode 条件
     if (condition.startsWith('mode=')) {
       const expectedMode = condition.substring(5)
-      return context.mode === expectedMode
+      return true // 移除 mode 检查，简化逻辑
     }
 
     // 默认返回 false

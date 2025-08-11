@@ -3,7 +3,7 @@ import type { SafenvOptions } from './types.ts'
 
 export class SafenvBuilder extends SafenvCore {
   constructor(options: SafenvOptions = {}) {
-    super({ ...options, mode: 'build', watch: false })
+    super({ ...options })
   }
 
   async build(): Promise<void> {

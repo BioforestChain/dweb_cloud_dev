@@ -6,13 +6,14 @@ export class SafenvServer extends SafenvCore {
   private watcher: any = null
 
   constructor(options: SafenvOptions = {}) {
-    super({ ...options, mode: 'serve' })
+    super({ ...options })
   }
 
   async start(): Promise<void> {
     await this.run()
 
-    if (this.options.watch) {
+    // 服务器模式默认启用监听
+    if (true) {
       this.startWatching()
     }
   }

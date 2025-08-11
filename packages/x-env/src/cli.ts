@@ -2,9 +2,11 @@
 
 import { program } from 'commander'
 import {
-  createServer,
-  createBuilder,
-  createWorkspace,
+  createSafenv,
+  SafenvCore,
+  SafenvServer,
+  SafenvWorkspace,
+  SafenvBuilder,
   UIServer,
 } from './index.ts'
 
@@ -20,11 +22,13 @@ program
   .option('-o, --output <dir>', 'Output directory', './dist')
   .option('--no-watch', 'Disable file watching')
   .action(async options => {
-    const server = createServer({
+    const server = createSafenv({
       configFile: options.config,
-      outputDir: options.output,
-      watch: options.watch,
-    })
+      server: {
+        port: 3000,
+        host: 'localhost',
+      },
+    }) as SafenvServer
 
     try {
       await server.start()
@@ -47,9 +51,8 @@ program
   .option('-c, --config <file>', 'Config file path', 'safenv.config')
   .option('-o, --output <dir>', 'Output directory', './dist')
   .action(async options => {
-    const builder = createBuilder({
+    const builder = new SafenvBuilder({
       configFile: options.config,
-      outputDir: options.output,
     })
 
     try {
@@ -69,9 +72,10 @@ program
     'workspace.config'
   )
   .action(async options => {
-    const workspace = createWorkspace({
+    const workspace = createSafenv({
       configFile: options.config,
-    })
+      workspace: ['./packages/*'],
+    }) as SafenvWorkspace
 
     try {
       await workspace.runWorkspace()
@@ -97,7 +101,7 @@ program
   .action(async options => {
     const uiServer = new UIServer({
       configFile: options.config,
-      outputDir: options.output,
+      root: options.output,
       port: parseInt(options.port),
       host: options.host,
       mode: options.mode,

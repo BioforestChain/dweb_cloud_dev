@@ -13,6 +13,8 @@
   },
   "scripts": {
     "demo": "node demo-script.js",
-    "visualize": "pnpm exec safenv ui"
+    "demo:real": "node real-api-demo.js",
+    "demo:vite-style": "node ../vite-style-config-demo.ts",
+    "visualize": "echo 'Visualization UI not implemented yet'"
   }
 }

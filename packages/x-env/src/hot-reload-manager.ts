@@ -507,8 +507,8 @@ export class HotReloadManager {
       context: {
         config: newConfig,
         resolvedVariables: await this.resolveVariables(newConfig),
-        mode: 'serve',
-        outputDir: './dist',
+        root: process.cwd(),
+        configFile: 'safenv.config',
       },
     }
 
@@ -526,8 +526,8 @@ export class HotReloadManager {
       context: {
         config: newConfig,
         resolvedVariables: await this.resolveVariables(newConfig),
-        mode: 'serve',
-        outputDir: './dist',
+        root: process.cwd(),
+        configFile: 'safenv.config',
       },
     }
 
