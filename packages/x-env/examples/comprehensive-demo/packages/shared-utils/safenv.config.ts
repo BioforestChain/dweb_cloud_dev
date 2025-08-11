@@ -9,7 +9,7 @@
  * 3. 工具库特有的配置
  */
 
-import { defineConfig } from '../../../../dist/index.mjs'
+import { defineConfig } from '../../../../src/index.js'
 
 export default defineConfig({
   name: 'shared_utils',

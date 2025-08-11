@@ -9,7 +9,7 @@
  * 3. 安全和认证配置
  */
 
-import { defineConfig } from '../../../../dist/index.mjs'
+import { defineConfig } from '../../../../src/index.js'
 
 export default defineConfig({
   name: 'api_backend',

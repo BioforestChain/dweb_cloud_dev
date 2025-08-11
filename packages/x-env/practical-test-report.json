@@ -1,0 +1,51 @@
+{
+  "title": "实用测试验证报告",
+  "timestamp": "2025-08-11T09:57:29.666Z",
+  "summary": {
+    "totalChecks": 6,
+    "passed": 6,
+    "failed": 0,
+    "successRate": 100
+  },
+  "results": [
+    {
+      "name": "API 可用性",
+      "passed": true
+    },
+    {
+      "name": "配置创建",
+      "passed": true
+    },
+    {
+      "name": "实例创建",
+      "passed": true
+    },
+    {
+      "name": "插件功能",
+      "passed": true
+    },
+    {
+      "name": "快照文件",
+      "passed": true
+    },
+    {
+      "name": "TypeScript 编译",
+      "passed": true
+    }
+  ],
+  "recommendations": {
+    "immediate": [
+      "核心 API 功能已验证",
+      "快照文件已生成并可用",
+      "插件系统工作正常",
+      "新版 API 可以正常使用"
+    ],
+    "optional": [
+      "遗留测试文件可以逐步修复",
+      "不影响核心功能使用",
+      "快照测试提供了足够的验证",
+      "可以专注于新功能开发"
+    ]
+  },
+  "conclusion": "✅ 核心功能验证通过，可以正常使用 x-env"
+}

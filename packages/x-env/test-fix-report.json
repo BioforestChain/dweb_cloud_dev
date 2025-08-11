@@ -1,0 +1,85 @@
+{
+  "title": "测试文件修复报告",
+  "timestamp": "2025-08-11T09:52:54.501Z",
+  "summary": {
+    "totalFiles": 8,
+    "processedFiles": 7,
+    "newFiles": 1,
+    "totalActions": 11,
+    "successfulActions": 11
+  },
+  "results": [
+    {
+      "file": "core.test.ts",
+      "action": "修复插件导入",
+      "success": true,
+      "details": "更新为插件函数导入"
+    },
+    {
+      "file": "core.test.ts",
+      "action": "修复插件使用",
+      "success": true,
+      "details": "更新为插件函数调用"
+    },
+    {
+      "file": "core.test.ts",
+      "action": "修复测试用例",
+      "success": true,
+      "details": "更新插件名称断言"
+    },
+    {
+      "file": "core.test.ts",
+      "action": "文件处理完成",
+      "success": true,
+      "details": "所有修复已应用"
+    },
+    {
+      "file": "enhanced-dependency-resolver.test.ts",
+      "action": "文件处理完成",
+      "success": true,
+      "details": "所有修复已应用"
+    },
+    {
+      "file": "enhanced-variable-resolver.test.ts",
+      "action": "文件处理完成",
+      "success": true,
+      "details": "所有修复已应用"
+    },
+    {
+      "file": "hot-reload-manager.test.ts",
+      "action": "文件处理完成",
+      "success": true,
+      "details": "所有修复已应用"
+    },
+    {
+      "file": "npm-safenv-resolver.test.ts",
+      "action": "文件处理完成",
+      "success": true,
+      "details": "所有修复已应用"
+    },
+    {
+      "file": "optimized-core.test.ts",
+      "action": "文件处理完成",
+      "success": true,
+      "details": "所有修复已应用"
+    },
+    {
+      "file": "performance-manager.test.ts",
+      "action": "文件处理完成",
+      "success": true,
+      "details": "所有修复已应用"
+    },
+    {
+      "file": "compatible.test.ts",
+      "action": "创建兼容测试文件",
+      "success": true,
+      "details": "新的兼容测试文件已创建"
+    }
+  ],
+  "recommendations": [
+    "运行 npm test 验证所有测试通过",
+    "检查新的 compatible.test.ts 文件",
+    "确保所有插件函数正确导入",
+    "验证 TypeScript 类型检查通过"
+  ]
+}

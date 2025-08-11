@@ -9,8 +9,11 @@ export interface WorkspaceConfig {
 
 export class SafenvWorkspace {
   private workspaceConfig: WorkspaceConfig | null = null
+  private options: SafenvOptions
 
-  constructor(private options: SafenvOptions = {}) {}
+  constructor(options: SafenvOptions = {}) {
+    this.options = options
+  }
 
   async loadWorkspace(): Promise<SafenvConfig[]> {
     const { loadConfig } = await import('unconfig')

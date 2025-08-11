@@ -9,7 +9,7 @@
  * 3. 依赖其他子项目的变量
  */
 
-import { defineConfig } from '../../../../dist/index.mjs'
+import { defineConfig } from '../../../../src/index.js'
 
 export default defineConfig({
   name: 'web_frontend',

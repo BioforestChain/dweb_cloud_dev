@@ -22,7 +22,10 @@ export class UIServer {
   private availableConfigs: string[] = []
   private uiMode: UIMode
 
-  constructor(private options: UIServerOptions = {}) {
+  private options: UIServerOptions
+
+  constructor(options: UIServerOptions = {}) {
+    this.options = options
     this.safenvCore = new SafenvCore({
       configFile: options.configFile,
       root: options.root,

@@ -1,0 +1,144 @@
+{
+  "name": "workspace-plugin-snapshot",
+  "version": "1.0.0",
+  "timestamp": "2025-08-11T09:26:57.000Z",
+  "config": {
+    "workspace": true,
+    "variableCount": 3,
+    "pluginCount": 2
+  },
+  "instance": {
+    "type": "SafenvWorkspace",
+    "isWorkspace": true
+  },
+  "expectedBehavior": {
+    "autoDiscovery": true,
+    "variableInheritance": true,
+    "pluginExecution": "workspace-level",
+    "subprojectAccess": true
+  },
+  "plugins": [
+    {
+      "name": "genFile",
+      "formats": ["env"],
+      "outputDir": "./workspace-generated"
+    },
+    {
+      "name": "genTs",
+      "outputPath": "./workspace-types/env.d.ts",
+      "validatorStyle": "zod"
+    }
+  ],
+  "testScenarios": [
+    {
+      "name": "auto-discovery-workspace",
+      "description": "测试自动发现工作空间配置",
+      "config": {
+        "name": "monorepo",
+        "workspace": true,
+        "variables": {
+          "NODE_ENV": { "type": "string", "default": "development" },
+          "WORKSPACE_ROOT": { "type": "string", "default": "/workspace/root" }
+        }
+      },
+      "expectedBehavior": {
+        "instanceType": "SafenvWorkspace",
+        "autoDiscovery": true,
+        "variableInheritance": true,
+        "scanPatterns": ["./*/safenv.config.*", "./packages/*/safenv.config.*"]
+      }
+    },
+    {
+      "name": "explicit-projects-workspace",
+      "description": "测试显式指定项目路径的工作空间",
+      "config": {
+        "name": "explicit-monorepo",
+        "workspace": ["./packages/frontend", "./packages/backend"],
+        "variables": {
+          "SHARED_SECRET": {
+            "type": "string",
+            "default": "shared123",
+            "sensitive": true
+          }
+        }
+      },
+      "expectedBehavior": {
+        "instanceType": "SafenvWorkspace",
+        "explicitProjects": true,
+        "projectCount": 2,
+        "projectPaths": ["./packages/frontend", "./packages/backend"]
+      }
+    },
+    {
+      "name": "workspace-plugin-inheritance",
+      "description": "测试工作空间插件在子项目中的继承",
+      "config": {
+        "workspace": true,
+        "plugins": [
+          {
+            "name": "genFile",
+            "formats": ["env", "json"]
+          }
+        ]
+      },
+      "expectedBehavior": {
+        "pluginInheritance": true,
+        "subprojectPluginAccess": true,
+        "mergedOutput": false,
+        "separateOutputs": true
+      }
+    }
+  ],
+  "variableInheritance": {
+    "description": "工作空间变量继承机制",
+    "rules": [
+      "子项目可以访问工作空间级别的变量",
+      "子项目变量会覆盖同名的工作空间变量",
+      "敏感变量需要显式声明才能被子项目访问",
+      "变量类型必须在工作空间和子项目间保持一致"
+    ],
+    "examples": {
+      "workspace": {
+        "DATABASE_URL": {
+          "type": "string",
+          "default": "postgresql://localhost:5432/db",
+          "sensitive": true
+        },
+        "LOG_LEVEL": { "type": "string", "default": "info" }
+      },
+      "subproject": {
+        "API_PORT": { "type": "number", "default": 3000 },
+        "LOG_LEVEL": { "type": "string", "default": "debug" }
+      },
+      "resolved": {
+        "DATABASE_URL": "inherited from workspace",
+        "LOG_LEVEL": "overridden by subproject",
+        "API_PORT": "subproject specific"
+      }
+    }
+  },
+  "pluginExecution": {
+    "description": "工作空间插件执行机制",
+    "levels": [
+      {
+        "level": "workspace",
+        "description": "在工作空间根目录执行",
+        "scope": "全局变量和配置",
+        "outputLocation": "工作空间根目录"
+      },
+      {
+        "level": "subproject",
+        "description": "在每个子项目中执行",
+        "scope": "子项目变量 + 继承的工作空间变量",
+        "outputLocation": "各自的子项目目录"
+      }
+    ],
+    "executionOrder": [
+      "1. 解析工作空间配置",
+      "2. 发现子项目配置",
+      "3. 执行工作空间级别插件",
+      "4. 为每个子项目执行插件",
+      "5. 合并和验证输出"
+    ]
+  }
+}

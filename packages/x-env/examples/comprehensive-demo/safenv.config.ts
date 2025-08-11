@@ -10,7 +10,8 @@
  * 4. 变量继承和依赖管理
  */
 
-import { defineConfig } from '../../dist/index.mjs'
+import { defineConfig } from '../../src/index.js'
+import { genTsPlugin } from '../../src/plugins/genTs.js'
 
 export default defineConfig({
   // 项目基础信息
@@ -103,14 +104,11 @@ export default defineConfig({
     },
 
     // genTs 插件 - 生成 TypeScript 类型定义和验证
-    {
-      name: 'genTs',
-      options: {
-        outputPath: './types',
-        validatorStyle: 'zod' as const,
-        exportMode: 'process.env' as const,
-        exportValidator: true,
-      },
-    },
+    genTsPlugin({
+      outputPath: './types',
+      validatorStyle: 'zod',
+      exportMode: 'process.env' as const,
+      exportValidator: true,
+    }),
   ],
 })

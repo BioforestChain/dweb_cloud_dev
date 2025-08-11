@@ -9,7 +9,7 @@
  * 3. genFile 和 genTs 插件是否能够在上述两种环境生成对应的配置文件或者验证函数
  */
 
-import { createSafenv, defineConfig } from '../../dist/index.mjs'
+import { createSafenv, defineConfig } from '../../src/index.js'
 import { existsSync, readFileSync, mkdirSync } from 'fs'
 import { resolve, join } from 'path'
 

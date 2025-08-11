@@ -45,7 +45,11 @@ interface FileSystemAccessWindow {
  * Uses File System Access API to manage local configuration files
  */
 export class FileImportExportAdapter implements ImportExportAdapter {
-  constructor(private options: ImportExportOptions = {}) {}
+  private options: ImportExportOptions
+
+  constructor(options: ImportExportOptions = {}) {
+    this.options = options
+  }
 
   async importConfig(): Promise<Record<string, unknown>> {
     if (!this.isSupported()) {

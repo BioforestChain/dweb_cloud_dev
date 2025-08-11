@@ -9,7 +9,12 @@
  * - 简洁的配置结构，专注于 VAL 管理
  */
 
-import { defineConfig, createSafenv } from '../dist/index.mjs'
+import {
+  defineConfig,
+  createSafenv,
+  genFilePlugin,
+  genTsPlugin,
+} from '../src/index.js'
 
 console.log('🌱 Safenv defineConfig 配置示例\n')
 
@@ -24,19 +29,16 @@ const singleProjectConfig = defineConfig({
     PORT: { type: 'number', default: 3000 },
   },
   plugins: [
-    {
+    // 直接使用插件函数，而不是字符串名称
+    genFilePlugin({
       name: 'genFile',
-      options: {
-        formats: ['env', 'json'],
-      },
-    },
-    {
-      name: 'genTs',
-      options: {
-        validatorStyle: 'zod' as const,
-        exportMode: 'process.env' as const,
-      },
-    },
+      formats: ['env', 'json'],
+    }),
+    genTsPlugin({
+      outputPath: './types/env.d.ts',
+      validatorStyle: 'zod',
+      exportMode: 'process.env',
+    }),
   ],
 })
 

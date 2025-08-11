@@ -1,0 +1,129 @@
+{
+  "name": "api-usage-snapshot",
+  "version": "1.0.0",
+  "timestamp": "2025-08-11T09:26:57.000Z",
+  "description": "x-env 新版 API 使用示例和最佳实践",
+  "examples": [
+    {
+      "name": "defineConfig-basic",
+      "description": "基础配置定义",
+      "code": "import { defineConfig } from '@dweb-cloud/safenv'\n\nexport default defineConfig({\n  name: 'my_project',\n  variables: {\n    API_URL: { type: 'string', default: 'https://api.example.com' },\n    PORT: { type: 'number', default: 3000 },\n    DEBUG: { type: 'boolean', default: true }\n  }\n})",
+      "features": ["类型安全", "IDE 自动补全", "配置验证"],
+      "usage": "基础项目配置定义"
+    },
+    {
+      "name": "createSafenv-core",
+      "description": "创建核心实例",
+      "code": "import { createSafenv, defineConfig } from '@dweb-cloud/safenv'\n\nconst config = defineConfig({\n  name: 'core_project',\n  variables: {\n    NODE_ENV: { type: 'string', default: 'development' }\n  }\n})\n\nconst instance = createSafenv(config) // SafenvCore",
+      "instanceType": "SafenvCore",
+      "usage": "单项目环境变量管理"
+    },
+    {
+      "name": "createSafenv-server",
+      "description": "创建服务器实例",
+      "code": "import { createSafenv, defineConfig } from '@dweb-cloud/safenv'\n\nconst config = defineConfig({\n  name: 'web_server',\n  server: {\n    port: 3000,\n    host: 'localhost'\n  },\n  variables: {\n    SERVER_PORT: { type: 'number', default: 3000 }\n  }\n})\n\nconst instance = createSafenv(config) // SafenvServer",
+      "instanceType": "SafenvServer",
+      "usage": "Web UI 和 HTML Tools 服务"
+    },
+    {
+      "name": "createSafenv-workspace",
+      "description": "创建工作空间实例",
+      "code": "import { createSafenv, defineConfig } from '@dweb-cloud/safenv'\n\nconst config = defineConfig({\n  name: 'monorepo',\n  workspace: true, // 自动发现\n  variables: {\n    NODE_ENV: { type: 'string', default: 'development' },\n    DATABASE_URL: { type: 'string', default: 'postgresql://localhost:5432/db', sensitive: true }\n  }\n})\n\nconst instance = createSafenv(config) // SafenvWorkspace",
+      "instanceType": "SafenvWorkspace",
+      "usage": "Monorepo 和多项目管理"
+    },
+    {
+      "name": "plugin-functions-direct",
+      "description": "直接使用插件函数（推荐）",
+      "code": "import { defineConfig, genFilePlugin, genTsPlugin } from '@dweb-cloud/safenv'\n\nexport default defineConfig({\n  name: 'plugin_example',\n  variables: {\n    API_URL: { type: 'string', default: 'https://api.example.com' },\n    PORT: { type: 'number', default: 3000 }\n  },\n  plugins: [\n    // ✅ 推荐：直接使用插件函数\n    genFilePlugin({\n      name: 'genFile',\n      formats: ['env', 'json', 'yaml'],\n      outputDir: './generated'\n    }),\n    genTsPlugin({\n      outputPath: './types/env.d.ts',\n      validatorStyle: 'zod',\n      exportMode: 'process.env',\n      exportValidator: true\n    })\n  ]\n})",
+      "advantages": ["类型安全", "IDE 支持", "编译时检查", "重构友好"],
+      "usage": "现代化插件配置方式"
+    },
+    {
+      "name": "plugin-string-config",
+      "description": "字符串配置方式（不推荐）",
+      "code": "// ❌ 不推荐：容易出错，缺少类型检查\nplugins: [\n  {\n    name: 'genFile',  // 字符串，容易拼写错误\n    options: {\n      formats: ['env', 'json']\n    }\n  },\n  {\n    name: 'genTs',\n    options: {\n      validator: 'zod',  // 可能的配置错误\n      export: 'process.env'\n    }\n  }\n]",
+      "disadvantages": [
+        "容易拼写错误",
+        "缺少类型检查",
+        "IDE 支持差",
+        "重构困难"
+      ],
+      "usage": "传统配置方式，不建议使用"
+    }
+  ],
+  "bestPractices": {
+    "configuration": [
+      "使用 defineConfig 获得类型安全",
+      "直接使用插件函数而不是字符串名称",
+      "为变量添加描述信息",
+      "标记敏感变量",
+      "使用合理的默认值"
+    ],
+    "plugins": [
+      "优先使用 genFilePlugin() 和 genTsPlugin()",
+      "配置输出目录和文件路径",
+      "选择合适的验证器风格",
+      "启用类型验证和导出"
+    ],
+    "workspace": [
+      "使用 workspace: true 进行自动发现",
+      "在工作空间根目录定义共享变量",
+      "让子项目继承工作空间配置",
+      "避免变量名冲突"
+    ],
+    "testing": [
+      "使用快照测试验证插件输出",
+      "检查生成文件的格式和内容",
+      "验证类型定义的正确性",
+      "测试工作空间变量继承"
+    ]
+  },
+  "migrationGuide": {
+    "from": "旧版 API",
+    "to": "新版统一 API",
+    "steps": [
+      {
+        "step": 1,
+        "description": "更新导入语句",
+        "before": "import { create } from '@dweb-cloud/safenv'",
+        "after": "import { createSafenv, defineConfig } from '@dweb-cloud/safenv'"
+      },
+      {
+        "step": 2,
+        "description": "使用 defineConfig 定义配置",
+        "before": "const config = { name: 'test', variables: {...} }",
+        "after": "const config = defineConfig({ name: 'test', variables: {...} })"
+      },
+      {
+        "step": 3,
+        "description": "更新实例创建方式",
+        "before": "const instance = create({ server: true })",
+        "after": "const instance = createSafenv({ server: { port: 3000 } })"
+      },
+      {
+        "step": 4,
+        "description": "更新插件配置",
+        "before": "plugins: [{ name: 'genFile', options: {...} }]",
+        "after": "plugins: [genFilePlugin({...})]"
+      }
+    ]
+  },
+  "commonPatterns": {
+    "singleProject": {
+      "description": "单项目配置模式",
+      "useCase": "独立项目或简单应用",
+      "example": "defineConfig({ name: 'app', variables: {...} })"
+    },
+    "webServer": {
+      "description": "Web 服务器模式",
+      "useCase": "需要 Web UI 或 HTML Tools",
+      "example": "defineConfig({ name: 'server', server: { port: 3000 } })"
+    },
+    "monorepo": {
+      "description": "Monorepo 工作空间模式",
+      "useCase": "多项目、多包管理",
+      "example": "defineConfig({ name: 'monorepo', workspace: true })"
+    }
+  }
+}
