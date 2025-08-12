@@ -1,7 +1,6 @@
 import { createServer, IncomingMessage, ServerResponse } from 'node:http'
-import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs'
-import { resolve, join, extname } from 'node:path'
-import type { SafenvConfig, SafenvContext } from './types.ts'
+import { existsSync, readdirSync } from 'node:fs'
+import { resolve, join } from 'node:path'
 import { SafenvCore } from './core.ts'
 import { HttpImportExportAdapter, FileImportExportAdapter } from './adapters.ts'
 
@@ -315,7 +314,7 @@ export class WebUIServer {
         const variables = await this.safenvCore.resolveVariables(config)
         this.sendJSON(res, { variables })
       } catch (error) {
-        this.sendJSON(res, { error: error.message }, 500)
+        this.sendJSON(res, { error }, 500)
       }
     } else {
       this.sendJSON(res, { error: 'Endpoint not found' }, 404)
@@ -346,7 +345,7 @@ export class WebUIServer {
           variables,
         })
       } catch (error) {
-        this.sendJSON(res, { error: error.message }, 500)
+        this.sendJSON(res, { error }, 500)
       }
     } else if (endpoint === 'export') {
       // 导出配置
@@ -387,7 +386,7 @@ export class WebUIServer {
         })
         res.end(content)
       } catch (error) {
-        this.sendJSON(res, { error: error.message }, 500)
+        this.sendJSON(res, { error }, 500)
       }
     } else {
       this.sendJSON(res, { error: 'Endpoint not found' }, 404)
@@ -397,7 +396,7 @@ export class WebUIServer {
   private async handlePutRequest(
     req: IncomingMessage,
     res: ServerResponse,
-    endpoint: string
+    _endpoint: string
   ): Promise<void> {
     // 预留用于更新配置文件
     this.sendJSON(res, { error: 'PUT operations not implemented yet' }, 501)
@@ -405,7 +404,7 @@ export class WebUIServer {
 
   private async handleDeleteRequest(
     res: ServerResponse,
-    endpoint: string
+    _endpoint: string
   ): Promise<void> {
     // 预留用于删除配置
     this.sendJSON(res, { error: 'DELETE operations not implemented yet' }, 501)
@@ -441,7 +440,7 @@ export class WebUIServer {
   private async serveStaticFile(
     req: IncomingMessage,
     res: ServerResponse,
-    pathname: string
+    _pathname: string
   ): Promise<void> {
     // 简化的静态文件服务（实际应用中应该使用专门的静态文件服务器）
     this.send404(res, 'Static files not implemented')

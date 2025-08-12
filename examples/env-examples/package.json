@@ -1,0 +1,16 @@
+{
+  "name": "env-examples",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "gen": "safenv build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.14.0",
+  "devDependencies": {
+    "@dweb-cloud/safenv": "file:../../packages/x-env"
+  }
+}
